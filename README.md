@@ -182,7 +182,7 @@ For more information about the original CPIDR 3.2, please visit [CASPR's officia
 ## Citing
 If you use this project in your research, you may cite it as: 
 
-Jason Robison. (2024). *ideadensity* (0.2.0) [Source code]. GitHub. https://github.com/jrrobison1/pycpidr
+Jason Robison. (2024). *ideadensity* (0.2.0) [Source code]. GitHub. https://github.com/jrrobison1/ideadensity
 
 
 ## Contributing
