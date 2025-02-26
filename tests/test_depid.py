@@ -3,7 +3,7 @@ from unittest.mock import Mock, MagicMock
 import pytest
 import spacy
 
-from pycpidr.depid import (
+from ideadensity.depid import (
     EXCLUDED_DETERMINERS,
     EXCLUDED_NSUBJ,
     depid,

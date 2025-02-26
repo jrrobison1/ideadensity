@@ -1,12 +1,12 @@
 import pytest
-from pycpidr.utils.word_search_utils import (
+from ideadensity.utils.word_search_utils import (
     beginning_of_sentence,
     is_repetition,
     search_backwards,
     MAX_LOOKBACK,
 )
-from pycpidr.word_item import WordListItem
-from pycpidr.utils.constants import SENTENCE_END
+from ideadensity.word_item import WordListItem
+from ideadensity.utils.constants import SENTENCE_END
 
 NUMBER_OF_BLANK_WORD_ITEMS = 10
 FIRST_WORD_INDEX = 10

@@ -1,5 +1,5 @@
 import pytest
-from pycpidr.idea_density_rater_rules import (
+from ideadensity.idea_density_rater_rules import (
     adjust_word_order,
     identify_words_and_adjust_tags,
     identify_potential_propositions,
@@ -7,8 +7,8 @@ from pycpidr.idea_density_rater_rules import (
     handle_auxiliary_verbs,
     handle_constructions_involving_to,
 )
-from pycpidr.word_item import WordListItem
-from pycpidr.utils.constants import (
+from ideadensity.word_item import WordListItem
+from ideadensity.utils.constants import (
     SENTENCE_END,
     RuleNumber,
     DEFAULT_PROPOSITIONS,

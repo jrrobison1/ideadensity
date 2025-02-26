@@ -16,11 +16,11 @@ from unittest.mock import patch
 import pytest
 import spacy
 
-from pycpidr.idea_density_rater import count_words_and_propositions, rate_text
-from pycpidr.tagger import tag_text
-from pycpidr.word_item import WordListItem, WordList
-from pycpidr.utils.word_search_utils import beginning_of_sentence
-from pycpidr.utils.constants import SENTENCE_END
+from ideadensity.idea_density_rater import count_words_and_propositions, rate_text
+from ideadensity.tagger import tag_text
+from ideadensity.word_item import WordListItem, WordList
+from ideadensity.utils.word_search_utils import beginning_of_sentence
+from ideadensity.utils.constants import SENTENCE_END
 
 try:
     nlp = spacy.load("en_core_web_sm")
@@ -362,7 +362,7 @@ def test_one_number():
 @pytest.fixture(scope="module")
 def mock_apply_idea_counting_rules():
     with patch(
-        "pycpidr.idea_density_rater.apply_idea_counting_rules"
+        "ideadensity.idea_density_rater.apply_idea_counting_rules"
     ) as mock_apply_rules:
         yield mock_apply_rules
 

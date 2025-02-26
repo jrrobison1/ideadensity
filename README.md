@@ -1,5 +1,5 @@
-# pycpidr
-[![PyPI - Version](https://img.shields.io/pypi/v/pycpidr?link=https%3A%2F%2Fpypi.org%2Fproject%2Fpycpidr%2F)](https://pypi.org/project/pycpidr/) [![Unit Tests](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml) [![Downloads](https://static.pepy.tech/badge/pycpidr)](https://pepy.tech/project/pycpidr)
+# ideadensity
+[![PyPI - Version](https://img.shields.io/pypi/v/ideadensity?link=https%3A%2F%2Fpypi.org%2Fproject%2Fideadensity%2F)](https://pypi.org/project/ideadensity/) [![Unit Tests](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml) [![Downloads](https://static.pepy.tech/badge/ideadensity)](https://pepy.tech/project/ideadensity)
 
 Python library for computing propositional idea density.
 
@@ -21,13 +21,13 @@ Python library for computing propositional idea density.
 
 ## Introduction
 
-pycpidr is a Python library which determines the propositional idea density of an English text automatically. This project aims to make this functionality more accessible to Python developers and researchers. pycpidr provides two ways of computing idea density:
-- CPIDR. The CPIDR implementation in pycpidr is a direct port of the Computerized Propositional Idea Density Rater (CPIDR) 3.2 (Brown et al., 2008) [1]
+ideadensity is a Python library which determines the propositional idea density of an English text automatically. This project aims to make this functionality more accessible to Python developers and researchers. ideadensity provides two ways of computing idea density:
+- CPIDR. The CPIDR implementation in ideadensity is a direct port of the Computerized Propositional Idea Density Rater (CPIDR) 3.2 (Brown et al., 2008) [1]
 - DEPID. This library implements the DEPID algorithm described by Sirts et al (2017) [2]
 
-Here's a quick example of how to use pycpidr:
+Here's a quick example of how to use ideadensity:
 ```python
-from pycpidr import cpidr, depid
+from ideadensity import cpidr, depid
 
 text = "The quick brown fox jumps over the lazy dog."
 cpidr_word_count, proposition_count, cpidr_density, word_list = cpidr(text)
@@ -46,7 +46,7 @@ Idea density, also known as propositional density, is a measure of the amount of
 ### Using pip
 1. Install the package
 ```bash
-pip install pycpidr
+pip install ideadensity
 ```
 
 2. Download the required spaCy model:
@@ -57,7 +57,7 @@ python -m spacy download en_core_web_sm
 ### Using poetry
 
 ```bash
-poetry add pycpidr
+poetry add ideadensity
 python -m spacy download en_core_web_sm
 ```
 
@@ -66,7 +66,7 @@ python -m spacy download en_core_web_sm
 Here's a simple example of how to use CPIDR:
 
 ```python
-from pycpidr import cpidr
+from ideadensity import cpidr
 
 text = "The quick brown fox jumps over the lazy dog."
 word_count, proposition_count, density, word_list = cpidr(text)
@@ -89,12 +89,12 @@ for word in word_list.items:
 
 #### Speech Mode
 
-pycpidr CPIDR mode supports a speech mode that handles common speech patterns and fillers differently from written text. When analyzing transcripts or spoken language, use the `speech_mode=True` parameter for more accurate results.
+ideadensity CPIDR mode supports a speech mode that handles common speech patterns and fillers differently from written text. When analyzing transcripts or spoken language, use the `speech_mode=True` parameter for more accurate results.
 
 ### DEPID
 Here's an example of how to use the DEPID functionality:
 ```python
-from pycpidr import depid
+from ideadensity import depid
 
 text = "The quick brown fox jumps over the lazy dog."
 density, word_count, dependencies = depid(text)
@@ -109,7 +109,7 @@ for dep in dependencies:
 DEPID-R counts _distinct_ dependencies.
 
 ```python
-from pycpidr import depid
+from ideadensity import depid
 
 text = "This is a test of DEPID-R. This is a test of DEPID-R"
 density, word_count, dependencies = depid(text, is_depid_r=True)
@@ -118,10 +118,10 @@ print(f"DEPID-R idea density: {density:.3f}")
 ```
 
 #### Using custom filters
-pycpidr DEPID mode supports custom filtering of sentences and tokens. By default, pycpidr uses filters described by (Sirts et al., 2017):
+ideadensity DEPID mode supports custom filtering of sentences and tokens. By default, ideadensity uses filters described by (Sirts et al., 2017):
 - Sentence filter. 
     - Filter out sentences with "I" or "You" as the subject of the sentence (i.e. if the "I" or "You" token dependency is "nsubj" and it's head dependency is the root). 
-    - Note: Sirts et al (2017) also filters out vague sentences using SpeciTeller. That is a filter which pycpidr does not yet implement.
+    - Note: Sirts et al (2017) also filters out vague sentences using SpeciTeller. That is a filter which ideadensity does not yet implement.
 - Token filters:
     - Filter out "det" dependencies if the token is "a", "an" or "the".
     - Filter out "nsubj" dependencies if the token is "it" or "this".
@@ -166,7 +166,7 @@ pytest tests/
 
 ## CPIDR Parity with CPIDR 3.2
 Because this port uses spaCy as a part-of-speech tagger instead of the original program's MontyLingua, there is a very slight difference in the reported idea density. This port includes unit tests containing 847 words of text.
-This project: 434 propositions. 0.512 idea density
+ideadensity: 434 propositions. 0.512 idea density
 CPIDR 3.2: 436 propositions. 0.515 idea density
 
 For more information about the original CPIDR 3.2, please visit [CASPR's official page](http://ai1.ai.uga.edu/caspr/).
@@ -179,7 +179,7 @@ For more information about the original CPIDR 3.2, please visit [CASPR's officia
 ## Citing
 If you use this project in your research, you may cite it as: 
 
-Jason Robison. (2024). *pycpidr* (0.2.0) [Source code]. GitHub. https://github.com/jrrobison1/pycpidr
+Jason Robison. (2024). *ideadensity* (0.2.0) [Source code]. GitHub. https://github.com/jrrobison1/pycpidr
 
 
 ## Contributing
@@ -197,4 +197,4 @@ Please ensure that your code passes all tests and follows the project's coding s
 ## License
 This project is licensed under the GNU General Public License v2.0. See the [LICENSE](LICENSE) file for details.
 
-pycpidr's CPIDR implementation is a port of the original CPIDR 3.2, which was released under GPL v2. This project maintains the same license to comply with the terms of the original software.
+ideadensity's CPIDR implementation is a port of the original CPIDR 3.2, which was released under GPL v2. This project maintains the same license to comply with the terms of the original software.

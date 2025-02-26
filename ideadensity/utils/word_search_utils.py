@@ -1,7 +1,7 @@
 from typing import Callable, List, Optional
 
-from pycpidr.word_item import WordListItem
-from pycpidr.utils.constants import SENTENCE_END
+from ideadensity.word_item import WordListItem
+from ideadensity.utils.constants import SENTENCE_END
 from Levenshtein import ratio
 
 MAX_LOOKBACK = 10

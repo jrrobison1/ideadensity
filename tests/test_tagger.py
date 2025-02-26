@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
-from pycpidr.tagger import tag_text
-from pycpidr.utils.constants import SENTENCE_END
+from ideadensity.tagger import tag_text
+from ideadensity.utils.constants import SENTENCE_END
 
 
 @pytest.mark.skip(reason="This test fails on github actions")

@@ -1,8 +1,8 @@
 import logging
 from typing import Tuple, Optional
-from pycpidr.idea_density_rater_rules import apply_idea_counting_rules
-from pycpidr.tagger import tag_text
-from pycpidr.word_item import WordList
+from ideadensity.idea_density_rater_rules import apply_idea_counting_rules
+from ideadensity.tagger import tag_text
+from ideadensity.word_item import WordList
 
 # Create a logger for this module
 logger = logging.getLogger(__name__)

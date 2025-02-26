@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pycpidr"
+name = "ideadensity"
 version = "0.2.0"
 description = "Python library for computing propositional idea density"
 authors = ["Jason Robison <jrrobison@protonmail.com>"]
@@ -15,10 +15,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
 ]
-packages = [{ include = "pycpidr" }]
+packages = [{ include = "ideadensity" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.13"
 spacy = "^3.7.5"
 python-levenshtein = "^0.25.1"
 

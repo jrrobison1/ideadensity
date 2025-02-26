@@ -1,5 +1,5 @@
 import argparse
-from pycpidr.idea_density_rater import rate_text
+from ideadensity.idea_density_rater import rate_text
 
 
 def main(text, speech_mode):

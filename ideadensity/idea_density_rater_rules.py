@@ -1,13 +1,13 @@
 import logging
 from typing import Callable, List
 
-from pycpidr.utils.constants import *
-from pycpidr.utils.word_search_utils import (
+from ideadensity.utils.constants import *
+from ideadensity.utils.word_search_utils import (
     beginning_of_sentence,
     is_repetition,
     search_backwards,
 )
-from pycpidr.word_item import WordListItem
+from ideadensity.word_item import WordListItem
 
 logger = logging.getLogger(__name__)
 
