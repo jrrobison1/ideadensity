@@ -75,7 +75,7 @@ jobs:
           zip -r ideadensity-macos-${VERSION}.zip ideadensity-${VERSION}.app
           
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ideadensity-macos-${VERSION}
           path: |
