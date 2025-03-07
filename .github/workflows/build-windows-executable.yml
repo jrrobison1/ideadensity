@@ -20,6 +20,15 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       
+      - name: Extract version from tag
+        id: get_version
+        shell: bash
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -36,14 +45,14 @@ jobs:
         run: |
           poetry add pyinstaller
           $MODEL_PATH = (poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
-          poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm main.py
+          poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm main.py
       
       - name: Add icon (if needed)
         run: |
           # If you have an icon file in your repo, use it
           # Otherwise, this step can be skipped or you can create a simple icon
           if (Test-Path -Path "app_icon.ico") {
-            poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm --icon=app_icon.ico main.py
+            poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm --icon=app_icon.ico main.py
           }
       
       - name: Run tests
@@ -53,21 +62,21 @@ jobs:
       - name: Zip executable
         run: |
           cd dist
-          Compress-Archive -Path ideadensity.exe -DestinationPath ideadensity-windows.zip
+          Compress-Archive -Path ideadensity-$env:VERSION.exe -DestinationPath ideadensity-windows-$env:VERSION.zip
           
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ideadensity-windows
+          name: ideadensity-windows-${{ env.VERSION }}
           path: |
-            dist/ideadensity.exe
-            dist/ideadensity-windows.zip
+            dist/ideadensity-${{ env.VERSION }}.exe
+            dist/ideadensity-windows-${{ env.VERSION }}.zip
             
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            dist/ideadensity-windows.zip
+            dist/ideadensity-windows-${{ env.VERSION }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

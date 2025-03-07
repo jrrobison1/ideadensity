@@ -20,6 +20,14 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -36,7 +44,7 @@ jobs:
         run: |
           poetry add pyinstaller
           MODEL_PATH=$(poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
-          poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm main.py
+          poetry run pyinstaller --onefile --windowed --name=ideadensity-${VERSION} --collect-all en_core_web_sm main.py
       
       - name: Create Icon (if needed)
         run: |
@@ -54,7 +62,7 @@ jobs:
           
           # Update the spec file to use this icon
           if [ -f app_icon.icns ]; then
-            poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm --icon=app_icon.icns main.py
+            poetry run pyinstaller --onefile --windowed --name=ideadensity-${VERSION} --collect-all en_core_web_sm --icon=app_icon.icns main.py
           fi
       
       - name: Run tests
@@ -64,22 +72,22 @@ jobs:
       - name: Zip app bundle
         run: |
           cd dist
-          zip -r ideadensity-macos.zip ideadensity.app
+          zip -r ideadensity-macos-${VERSION}.zip ideadensity-${VERSION}.app
           
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ideadensity-macos
+          name: ideadensity-macos-${VERSION}
           path: |
-            dist/ideadensity
-            dist/ideadensity.app
-            dist/ideadensity-macos.zip
+            dist/ideadensity-${VERSION}
+            dist/ideadensity-${VERSION}.app
+            dist/ideadensity-macos-${VERSION}.zip
             
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            dist/ideadensity-macos.zip
+            dist/ideadensity-macos-${VERSION}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

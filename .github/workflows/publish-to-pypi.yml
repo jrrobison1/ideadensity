@@ -20,6 +20,27 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Verify version match
+        run: |
+          # Get version from pyproject.toml
+          TOML_VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+          echo "Version in pyproject.toml: $TOML_VERSION"
+          echo "Version from tag: $VERSION"
+          
+          # Verify versions match
+          if [ "$TOML_VERSION" != "$VERSION" ]; then
+            echo "::warning::Version in tag ($VERSION) does not match version in pyproject.toml ($TOML_VERSION)"
+            echo "::warning::It is recommended to use the 'Bump Version' workflow before creating a tag"
+          fi
+      
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
