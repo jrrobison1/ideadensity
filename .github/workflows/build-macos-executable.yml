@@ -9,6 +9,9 @@ on:
 jobs:
   build-macos:
     runs-on: macos-latest
+    # Add permissions needed for creating releases
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -58,17 +61,17 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ideadensity-macos-${VERSION}
+          name: ideadensity-macos-${{ env.VERSION }}
           path: |
-            dist/ideadensity-${VERSION}
-            dist/ideadensity-${VERSION}.app
-            dist/ideadensity-macos-${VERSION}.zip
+            dist/ideadensity-${{ env.VERSION }}
+            dist/ideadensity-${{ env.VERSION }}.app
+            dist/ideadensity-macos-${{ env.VERSION }}.zip
             
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            dist/ideadensity-macos-${VERSION}.zip
+            dist/ideadensity-macos-${{ env.VERSION }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
