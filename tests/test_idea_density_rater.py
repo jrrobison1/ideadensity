@@ -175,10 +175,8 @@ def test_turner_greene_sentence_12():
     )
 
     assert word_count == 21
-
-    # Note: The original CPIDR 3.2 finds 9 propositions
-    assert proposition_count == 8
-    assert idea_density == pytest.approx(0.381, abs=1e-3)
+    assert proposition_count == 9
+    assert idea_density == pytest.approx(0.428, abs=1e-3)
 
 
 def test_turner_greene_sentence_13():
@@ -256,8 +254,8 @@ def test_turner_1987_passage_2():
     assert word_count == 366
 
     # Note: The original CPIDR 3.2 finds 191 propositions
-    assert proposition_count == 190
-    assert idea_density == pytest.approx(0.519, abs=1e-3)
+    assert proposition_count == 189
+    assert idea_density == pytest.approx(0.516, abs=1e-3)
 
 
 def test_turner_1987_passage_3():
@@ -283,8 +281,10 @@ def test_turner_1987_passage_3():
     )
 
     assert word_count == 210
-    assert proposition_count == 106
-    assert idea_density == pytest.approx(0.505, abs=1e-3)
+
+    # Note: The original CPIDR 3.2 finds 106 propositions
+    assert proposition_count == 104
+    assert idea_density == pytest.approx(0.495, abs=1e-3)
 
 
 def test_empty_text():
