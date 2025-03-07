@@ -44,26 +44,7 @@ jobs:
         run: |
           poetry add pyinstaller
           MODEL_PATH=$(poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
-          poetry run pyinstaller --onefile --windowed --name=ideadensity-${VERSION} --collect-all en_core_web_sm main.py
-      
-      - name: Create Icon (if needed)
-        run: |
-          # Skip this step if you have an icon file in your repo
-          # Otherwise, this creates a simple icon
-          mkdir -p app_icon.iconset
-          echo "Creating icon placeholders"
-          touch app_icon.iconset/icon_16x16.png
-          touch app_icon.iconset/icon_32x32.png
-          touch app_icon.iconset/icon_64x64.png
-          touch app_icon.iconset/icon_128x128.png
-          touch app_icon.iconset/icon_256x256.png
-          touch app_icon.iconset/icon_512x512.png
-          iconutil -c icns app_icon.iconset -o app_icon.icns
-          
-          # Update the spec file to use this icon
-          if [ -f app_icon.icns ]; then
-            poetry run pyinstaller --onefile --windowed --name=ideadensity-${VERSION} --collect-all en_core_web_sm --icon=app_icon.icns main.py
-          fi
+          poetry run pyinstaller --onefile --windowed --name=ideadensity-${VERSION} --collect-all en_core_web_sm --icon=id_icon.icns main.py
       
       - name: Run tests
         run: |
