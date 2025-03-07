@@ -35,25 +35,21 @@ jobs:
           version: 1.7.1
           virtualenvs-create: true
           virtualenvs-in-project: true
-      
+
+      - name: Add Poetry to PATH
+        run: |
+          echo "$env:USERPROFILE\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
       - name: Install dependencies
         run: |
           poetry install
           poetry run python -m spacy download en_core_web_sm
       
-      - name: Build Windows executable
+      - name: Build Windows executable with icon
         run: |
           poetry add pyinstaller
           $MODEL_PATH = (poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
-          poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm main.py
-      
-      - name: Add icon (if needed)
-        run: |
-          # If you have an icon file in your repo, use it
-          # Otherwise, this step can be skipped or you can create a simple icon
-          if (Test-Path -Path "app_icon.ico") {
-            poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm --icon=app_icon.ico main.py
-          }
+          poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm --icon=id_icon.ico main.py
       
       - name: Run tests
         run: |
