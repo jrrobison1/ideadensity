@@ -235,17 +235,48 @@ class IdeaDensityApp(QWidget):
             self.dependency_table.setItem(i, 2, QTableWidgetItem(str(dep[2])))
 
 
+def read_text_from_file(file_path):
+    """Read text from a file.
+    
+    Args:
+        file_path: Path to the file to read
+        
+    Returns:
+        The contents of the file as a string
+        
+    Raises:
+        FileNotFoundError: If the file does not exist
+        IOError: If there is an error reading the file
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {file_path}")
+    except IOError as e:
+        raise IOError(f"Error reading file {file_path}: {str(e)}")
+
 if __name__ == "__main__":
     # Check if running in CLI mode
     if len(sys.argv) > 1:
         parser = argparse.ArgumentParser(
             description="Calculate idea density of a given text."
         )
-        parser.add_argument("text", nargs="+", help="The text to analyze")
+        input_group = parser.add_mutually_exclusive_group(required=True)
+        input_group.add_argument("--text", nargs="+", help="The text to analyze")
+        input_group.add_argument("--file", type=str, help="Path to a file containing text to analyze")
         parser.add_argument("--speech-mode", action="store_true", help="Enable speech mode")
         args = parser.parse_args()
 
-        text = " ".join(args.text)
+        if args.text:
+            text = " ".join(args.text)
+        else:  # args.file is set
+            try:
+                text = read_text_from_file(args.file)
+            except (FileNotFoundError, IOError) as e:
+                print(f"Error: {str(e)}")
+                sys.exit(1)
+                
         cli_main(text, args.speech_mode)
     else:
         # Start GUI

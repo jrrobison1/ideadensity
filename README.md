@@ -10,6 +10,7 @@ Python library for computing propositional idea density.
 - [Usage](#usage)
   - [CPIDR](#cpidr)
   - [DEPID](#depid)
+  - [Command Line Interface](#command-line-interface)
 - [Requirements](#requirements)
 - [Development Setup](#development-setup)
 - [Running Tests](#running-tests)
@@ -142,6 +143,27 @@ sentence_filters=[custom_sentence_filter],
 token_filters=[custom_token_filter])
 print(f"\nWith custom filters - Idea density: {density:.3f}")
 ```
+
+### Command Line Interface
+The package includes a command line interface for quick analysis of text:
+
+```bash
+# Analyze text directly from command line
+python main.py --text "The quick brown fox jumps over the lazy dog."
+
+# Analyze text from a file
+python main.py --file sample.txt
+
+# Use speech mode with text from a file
+python main.py --file transcript.txt --speech-mode
+```
+
+Command line options:
+- `--text TEXT`: Directly provide text for analysis (can include multiple words)
+- `--file FILE`: Path to a file containing text to analyze
+- `--speech-mode`: Enable speech mode for analyzing transcripts (filters common fillers)
+
+Note: You must provide either `--text` or `--file` when using the command line interface.
 
 
 ## Requirements
