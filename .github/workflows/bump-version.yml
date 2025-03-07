@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_GITHUB }}
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -96,7 +96,7 @@ jobs:
         run: |
           git add pyproject.toml
           git commit -m "Bump version to ${{ env.NEW_VERSION }}"
-          git push
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
       
       - name: Create and push tag
         if: ${{ github.event.inputs.create_tag == true }}
