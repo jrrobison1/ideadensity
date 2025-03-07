@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ideadensity"
-version = "0.2.10"
+version = "0.2.11"
 description = "Python library for computing propositional idea density"
 authors = ["Jason Robison <jrrobison@protonmail.com>"]
 readme = "README.md"
