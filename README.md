@@ -158,6 +158,12 @@ python main.py --file sample.txt
 python main.py --file transcript.txt --speech-mode
 ```
 
+### Graphical User Interface
+Use one of the provided downloads for your operating system, or clone this repository and run:
+```bash
+python main.py
+```
+
 Command line options:
 - `--text TEXT`: Directly provide text for analysis (can include multiple words)
 - `--file FILE`: Path to a file containing text to analyze
