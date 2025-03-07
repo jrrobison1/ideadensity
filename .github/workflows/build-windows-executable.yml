@@ -6,6 +6,10 @@ on:
     tags:
       - 'v*'  # Run on version tags
 
+# Add permissions block here
+permissions:
+  contents: write  # This is required for creating releases and uploading assets
+
 jobs:
   build-windows:
     runs-on: windows-latest
