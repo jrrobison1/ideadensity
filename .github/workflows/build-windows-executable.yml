@@ -1,0 +1,73 @@
+name: Build Windows Executable
+
+on:
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    tags:
+      - 'v*'  # Run on version tags
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: |
+          poetry install
+          poetry run python -m spacy download en_core_web_sm
+      
+      - name: Build Windows executable
+        run: |
+          poetry add pyinstaller
+          $MODEL_PATH = (poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
+          poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm main.py
+      
+      - name: Add icon (if needed)
+        run: |
+          # If you have an icon file in your repo, use it
+          # Otherwise, this step can be skipped or you can create a simple icon
+          if (Test-Path -Path "app_icon.ico") {
+            poetry run pyinstaller --onefile --windowed --name=ideadensity --collect-all en_core_web_sm --icon=app_icon.ico main.py
+          }
+      
+      - name: Run tests
+        run: |
+          poetry run pytest tests/
+          
+      - name: Zip executable
+        run: |
+          cd dist
+          Compress-Archive -Path ideadensity.exe -DestinationPath ideadensity-windows.zip
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ideadensity-windows
+          path: |
+            dist/ideadensity.exe
+            dist/ideadensity-windows.zip
+            
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/ideadensity-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
