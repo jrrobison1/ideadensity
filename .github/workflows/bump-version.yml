@@ -99,13 +99,13 @@ jobs:
           git push origin HEAD:${GITHUB_REF#refs/heads/}
       
       - name: Create and push tag
-        if: ${{ github.event.inputs.create_tag == true }}
+        if: ${{ github.event.inputs.create_tag == 'true' }}
         run: |
           git tag v${{ env.NEW_VERSION }}
           git push origin v${{ env.NEW_VERSION }}
           echo "Created and pushed tag v${{ env.NEW_VERSION }}"
       
       - name: Tag creation skipped
-        if: ${{ github.event.inputs.create_tag != true }}
+        if: ${{ github.event.inputs.create_tag != 'true' }}
         run: |
           echo "Tag creation was skipped. You can manually create a tag with: git tag v${{ env.NEW_VERSION }} && git push origin v${{ env.NEW_VERSION }}" 
