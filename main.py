@@ -1,20 +1,45 @@
 import sys
 import argparse
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, QLabel, QTabWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox, QCheckBox
-from PyQt6.QtCore import Qt
+import os
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, 
+                             QLabel, QTabWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, 
+                             QHeaderView, QGroupBox, QCheckBox, QFileDialog, QMessageBox,
+                             QToolButton, QSizePolicy, QMenu)
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon
 from ideadensity.idea_density_rater import rate_text
 from ideadensity import depid
+from ideadensity.utils.word_search_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
 
 
-def cli_main(text, speech_mode):
-    _, _, density, word_list = rate_text(text, speech_mode=speech_mode)
+def cli_main(text, speech_mode, csv_output=None, txt_output=None):
+    word_count, proposition_count, density, word_list = rate_text(text, speech_mode=speech_mode)
 
     print(f"Density: {density}")
+    print(f"Word count: {word_count}")
+    print(f"Proposition count: {proposition_count}")
     print("Word list:")
     for word in word_list.items:
-        print(
-            f"Token: [{word.token}], tag: [{word.tag}], is_word: [{word.is_word}], is_prop: [{word.is_proposition}], rule_number: [{word.rule_number}]"
-        )
+        if word.token:  # Skip empty tokens
+            print(
+                f"Token: [{word.token}], tag: [{word.tag}], is_word: [{word.is_word}], is_prop: [{word.is_proposition}], rule_number: [{word.rule_number}]"
+            )
+    
+    # Export to CSV if requested
+    if csv_output:
+        try:
+            export_cpidr_to_csv(word_list, csv_output)
+            print(f"Token details exported to {csv_output}")
+        except Exception as e:
+            print(f"Error exporting to CSV: {str(e)}")
+            
+    # Export to TXT if requested
+    if txt_output:
+        try:
+            export_cpidr_to_txt(word_list, text, word_count, proposition_count, density, txt_output)
+            print(f"Results exported to {txt_output} in CPIDR format")
+        except Exception as e:
+            print(f"Error exporting to TXT: {str(e)}")
 
 
 class IdeaDensityApp(QWidget):
@@ -22,7 +47,8 @@ class IdeaDensityApp(QWidget):
         super().__init__()
         self.setWindowTitle("Idea Density Analyzer")
         self.resize(1000, 700)
-        self.current_word_list = None
+        self.current_word_list = None  # Store CPIDR analysis results
+        self.current_dependencies = None  # Store DEPID analysis results
         self.setup_ui()
         
     def setup_ui(self):
@@ -52,6 +78,7 @@ class IdeaDensityApp(QWidget):
         options_group.setLayout(options_layout)
         cpidr_layout.addWidget(options_group)
         
+        # Analyze button
         self.cpidr_analyze_btn = QPushButton("Analyze with CPIDR")
         self.cpidr_analyze_btn.clicked.connect(self.analyze_cpidr)
         cpidr_layout.addWidget(self.cpidr_analyze_btn)
@@ -71,7 +98,10 @@ class IdeaDensityApp(QWidget):
         word_details_group = QGroupBox("Token Details")
         word_details_layout = QVBoxLayout()
         
-        # Filter options
+        # Header with filters and export button
+        header_layout = QHBoxLayout()
+        
+        # Filter options layout
         filter_layout = QHBoxLayout()
         self.show_all_tokens_checkbox = QCheckBox("Show All Tokens")
         self.show_all_tokens_checkbox.setChecked(True)
@@ -88,7 +118,59 @@ class IdeaDensityApp(QWidget):
         filter_layout.addWidget(self.show_only_props_checkbox)
         filter_layout.addStretch()
         
-        word_details_layout.addLayout(filter_layout)
+        # Add filters to header
+        header_layout.addLayout(filter_layout)
+        
+        # Export button with menu for different formats
+        self.cpidr_export_btn = QToolButton()
+        self.cpidr_export_btn.setToolTip("Export Results")
+        self.cpidr_export_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        
+        # Set an icon (try system theme first, then fall back)
+        icon_set = False
+        
+        # Try system theme icon
+        if QIcon.hasThemeIcon("document-save-as") and not icon_set:
+            self.cpidr_export_btn.setIcon(QIcon.fromTheme("document-save-as"))
+            icon_set = True
+        elif QIcon.hasThemeIcon("document-save") and not icon_set:
+            self.cpidr_export_btn.setIcon(QIcon.fromTheme("document-save"))
+            icon_set = True
+            
+        # If no system icon, use a text alternative with styling
+        if not icon_set:
+            self.cpidr_export_btn.setText("Export")
+            self.cpidr_export_btn.setStyleSheet("""
+                QToolButton {
+                    padding: 3px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    background-color: #f8f8f8;
+                }
+                QToolButton:hover {
+                    background-color: #e8e8e8;
+                }
+            """)
+        
+        self.cpidr_export_btn.setIconSize(QSize(16, 16))
+        
+        # Create menu for export options
+        export_menu = QMenu(self)
+        export_csv_action = export_menu.addAction("Export CSV")
+        export_txt_action = export_menu.addAction("Export TXT (CPIDR format)")
+        
+        # Connect actions to handlers
+        export_csv_action.triggered.connect(self.export_cpidr_csv)
+        export_txt_action.triggered.connect(self.export_cpidr_txt)
+        
+        # Set the menu on the button
+        self.cpidr_export_btn.setMenu(export_menu)
+        self.cpidr_export_btn.setEnabled(False)  # Disabled until analysis is run
+        self.cpidr_export_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        header_layout.addWidget(self.cpidr_export_btn)
+        
+        # Add header to layout
+        word_details_layout.addLayout(header_layout)
         
         # Token table
         self.word_table = QTableWidget(0, 4)
@@ -112,6 +194,7 @@ class IdeaDensityApp(QWidget):
         depid_options_group.setLayout(depid_options_layout)
         depid_layout.addWidget(depid_options_group)
         
+        # Analyze button
         self.depid_analyze_btn = QPushButton("Analyze with DEPID")
         self.depid_analyze_btn.clicked.connect(self.analyze_depid)
         depid_layout.addWidget(self.depid_analyze_btn)
@@ -130,10 +213,56 @@ class IdeaDensityApp(QWidget):
         # Dependency details
         dependency_group = QGroupBox("Dependencies")
         dependency_layout = QVBoxLayout()
+        
+        # Header for export button
+        header_layout = QHBoxLayout()
+        header_layout.addStretch()
+        
+        # Export CSV button (as an icon if possible, otherwise text)
+        self.depid_export_btn = QToolButton()
+        self.depid_export_btn.setToolTip("Export CSV")
+        
+        # Set an icon (try system theme first, then fall back)
+        icon_set = False
+        
+        # Try system theme icon
+        if QIcon.hasThemeIcon("document-save-as") and not icon_set:
+            self.depid_export_btn.setIcon(QIcon.fromTheme("document-save-as"))
+            icon_set = True
+        elif QIcon.hasThemeIcon("document-save") and not icon_set:
+            self.depid_export_btn.setIcon(QIcon.fromTheme("document-save"))
+            icon_set = True
+            
+        # If no system icon, use a text alternative with styling
+        if not icon_set:
+            self.depid_export_btn.setText("CSV")
+            self.depid_export_btn.setStyleSheet("""
+                QToolButton {
+                    padding: 3px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    background-color: #f8f8f8;
+                }
+                QToolButton:hover {
+                    background-color: #e8e8e8;
+                }
+            """)
+        
+        self.depid_export_btn.setIconSize(QSize(16, 16))
+        
+        self.depid_export_btn.clicked.connect(self.export_depid_csv)
+        self.depid_export_btn.setEnabled(False)  # Disabled until analysis is run
+        self.depid_export_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        header_layout.addWidget(self.depid_export_btn)
+        
+        dependency_layout.addLayout(header_layout)
+        
+        # Table
         self.dependency_table = QTableWidget(0, 3)
         self.dependency_table.setHorizontalHeaderLabels(["Token", "Dependency", "Head"])
         self.dependency_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         dependency_layout.addWidget(self.dependency_table)
+        
         dependency_group.setLayout(dependency_layout)
         depid_results_layout.addWidget(dependency_group, 2)
         
@@ -162,6 +291,9 @@ class IdeaDensityApp(QWidget):
         # Save word list for filtering
         self.current_word_list = word_list
         self.update_token_table()
+        
+        # Enable export button
+        self.cpidr_export_btn.setEnabled(True)
         
     def update_token_filters(self):
         """Update token table based on filter checkboxes"""
@@ -233,6 +365,94 @@ class IdeaDensityApp(QWidget):
             self.dependency_table.setItem(i, 0, QTableWidgetItem(str(dep[0])))
             self.dependency_table.setItem(i, 1, QTableWidgetItem(str(dep[1])))
             self.dependency_table.setItem(i, 2, QTableWidgetItem(str(dep[2])))
+            
+        # Save dependencies for CSV export
+        self.current_dependencies = dependencies
+        
+        # Enable export button
+        self.depid_export_btn.setEnabled(True)
+    
+    def export_cpidr_csv(self):
+        """Export CPIDR token details to a CSV file"""
+        if not self.current_word_list:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+            
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save CSV File", os.path.expanduser("~/cpidr_tokens.csv"), 
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                export_cpidr_to_csv(self.current_word_list, file_path)
+                QMessageBox.information(
+                    self, "Export Successful", f"Token details exported to {file_path}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting token details: {str(e)}"
+                )
+    
+    def export_cpidr_txt(self):
+        """Export CPIDR results to a TXT file in CPIDR format"""
+        if not self.current_word_list:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+            
+        # Get the original text
+        text = self.text_input.toPlainText()
+        
+        # Get the analysis results
+        word_count = sum(1 for item in self.current_word_list.items if item.is_word)
+        proposition_count = sum(1 for item in self.current_word_list.items if item.is_proposition)
+        
+        # Calculate density
+        density = 0.0
+        if word_count > 0:
+            density = proposition_count / word_count
+            
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save TXT File", os.path.expanduser("~/cpidr_results.txt"), 
+            "Text Files (*.txt);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                export_cpidr_to_txt(self.current_word_list, text, word_count, 
+                                    proposition_count, density, file_path)
+                QMessageBox.information(
+                    self, "Export Successful", f"Results exported to {file_path} in CPIDR format"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting results: {str(e)}"
+                )
+    
+    def export_depid_csv(self):
+        """Export DEPID dependency details to a CSV file"""
+        if not self.current_dependencies:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+            
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save CSV File", os.path.expanduser("~/depid_dependencies.csv"), 
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                export_depid_to_csv(self.current_dependencies, file_path)
+                QMessageBox.information(
+                    self, "Export Successful", f"Dependency details exported to {file_path}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting dependency details: {str(e)}"
+                )
 
 
 def read_text_from_file(file_path):
@@ -266,6 +486,8 @@ if __name__ == "__main__":
         input_group.add_argument("--text", nargs="+", help="The text to analyze")
         input_group.add_argument("--file", type=str, help="Path to a file containing text to analyze")
         parser.add_argument("--speech-mode", action="store_true", help="Enable speech mode")
+        parser.add_argument("--csv", type=str, help="Export token details to a CSV file at the specified path")
+        parser.add_argument("--txt", type=str, help="Export results to a TXT file in CPIDR format at the specified path")
         args = parser.parse_args()
 
         if args.text:
@@ -277,7 +499,7 @@ if __name__ == "__main__":
                 print(f"Error: {str(e)}")
                 sys.exit(1)
                 
-        cli_main(text, args.speech_mode)
+        cli_main(text, args.speech_mode, args.csv, args.txt)
     else:
         # Start GUI
         app = QApplication(sys.argv)

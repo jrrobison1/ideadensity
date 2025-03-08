@@ -22,6 +22,7 @@ python = ">=3.10,<3.13"
 python-levenshtein = "^0.25.1"
 pyqt6 = "^6.6.1"
 spacy = "^3.8.4"
+tomli = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
