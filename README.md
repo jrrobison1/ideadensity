@@ -146,6 +146,14 @@ print(f"\nWith custom filters - Idea density: {density:.3f}")
 
 ### Command Line Interface
 The package includes a command line interface for quick analysis of text:
+Command line options:
+- `--text TEXT`: Directly provide text for analysis (can include multiple words)
+- `--file FILE`: Path to a file containing text to analyze
+- `--speech-mode`: Enable speech mode for analyzing transcripts (filters common fillers)
+- `--csv CSV`: Export token details to a CSV file at the specified path
+- `--txt TXT`: Export results to a TXT file in CPIDR format at the specified path
+
+Note: You must provide either `--text` or `--file` when using the command line interface.
 
 ```bash
 # Analyze text directly from command line
@@ -156,6 +164,15 @@ python main.py --file sample.txt
 
 # Use speech mode with text from a file
 python main.py --file transcript.txt --speech-mode
+
+# Export token details to a CSV file
+python main.py --text "This is a test sentence." --csv output.csv
+
+# Export results in CPIDR-compatible format to a TXT file
+python main.py --text "This is a test sentence." --txt output.txt
+
+# Export in both formats
+python main.py --file sample.txt --csv output.csv --txt output.txt
 ```
 
 ### Graphical User Interface
@@ -164,12 +181,39 @@ Use one of the provided downloads for your operating system, or clone this repos
 python main.py
 ```
 
-Command line options:
-- `--text TEXT`: Directly provide text for analysis (can include multiple words)
-- `--file FILE`: Path to a file containing text to analyze
-- `--speech-mode`: Enable speech mode for analyzing transcripts (filters common fillers)
 
-Note: You must provide either `--text` or `--file` when using the command line interface.
+
+#### Export Formats
+
+**CSV Export**: The CSV export includes detailed information about each token with the following columns:
+- Token: The actual word or token
+- Tag: The part-of-speech tag
+- Is Word: Whether the token is considered a word (True/False)
+- Is Proposition: Whether the token is considered a proposition (True/False)
+- Rule Number: The rule number that identified the token as a proposition (if applicable)
+
+**TXT Export**: The TXT export produces a file in a format compatible with the original CPIDR tool:
+```
+ideadensity 0.2.11
+
+"This is a test sentence...."
+ 054 PRP  W   This
+ 200 VBZ  W P is
+ 201 DT   W   a
+ 200 JJ   W P test
+     NN   W   sentence
+     .        .
+
+     2 propositions
+     5 words
+ 0.400 density
+```
+Each line in the token section includes:
+- Rule number (if available)
+- Part-of-speech tag
+- Word marker (W if the token is a word)
+- Proposition marker (P if the token is a proposition)
+- The token text
 
 
 ## Requirements
