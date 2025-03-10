@@ -1,15 +1,33 @@
 import sys
 import argparse
 import os
+import tomli
+import spacy
+from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, 
                              QLabel, QTabWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QGroupBox, QCheckBox, QFileDialog, QMessageBox,
-                             QToolButton, QSizePolicy, QMenu)
+                             QToolButton, QSizePolicy, QMenu, QMenuBar)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 from ideadensity.idea_density_rater import rate_text
 from ideadensity import depid
 from ideadensity.utils.word_search_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
+
+
+def get_version():
+    """Get version from pyproject.toml"""
+    try:
+        pyproject_path = Path(__file__).parent / "pyproject.toml"
+        if not pyproject_path.exists():
+            # Try one directory up (for running from the repo root)
+            pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        
+        with open(pyproject_path, "rb") as f:
+            pyproject_data = tomli.load(f)
+        return pyproject_data["tool"]["poetry"]["version"]
+    except (FileNotFoundError, KeyError, tomli.TOMLDecodeError):
+        return "0.3.1"  # Fallback to hardcoded version
 
 
 def cli_main(text, speech_mode, csv_output=None, txt_output=None):
@@ -53,6 +71,13 @@ class IdeaDensityApp(QWidget):
         
     def setup_ui(self):
         main_layout = QVBoxLayout()
+        
+        # Menu bar
+        menu_bar = QMenuBar()
+        help_menu = menu_bar.addMenu("Help")
+        about_action = help_menu.addAction("About")
+        about_action.triggered.connect(self.show_about)
+        main_layout.setMenuBar(menu_bar)
         
         # Input area
         self.text_input = QTextEdit()
@@ -453,6 +478,30 @@ class IdeaDensityApp(QWidget):
                 QMessageBox.critical(
                     self, "Export Error", f"Error exporting dependency details: {str(e)}"
                 )
+                
+    def show_about(self):
+        """Show about dialog with version information"""
+        app_version = get_version()
+        spacy_version = spacy.__version__
+        try:
+            nlp = spacy.load("en_core_web_sm")
+            model_name = "en_core_web_sm"
+            model_version = nlp.meta["version"]
+        except:
+            model_name = "en_core_web_sm"
+            model_version = "not loaded"
+        
+        message = f"""<h3>Idea Density Analyzer</h3>
+<p>Version: {app_version}</p>
+<p>A tool for computing propositional idea density.</p>
+<p>Using:</p>
+<ul>
+    <li>spaCy version: {spacy_version}</li>
+    <li>Model: {model_name} (v{model_version})</li>
+</ul>
+<p>Homepage: <a href="https://github.com/jrrobison1/PyCPIDR">https://github.com/jrrobison1/PyCPIDR</a></p>
+"""
+        QMessageBox.about(self, "About Idea Density Analyzer", message)
 
 
 def read_text_from_file(file_path):
@@ -482,6 +531,28 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(
             description="Calculate idea density of a given text."
         )
+        
+        # Create version action
+        class VersionAction(argparse.Action):
+            def __call__(self, parser, namespace, values, option_string=None):
+                app_version = get_version()
+                spacy_version = spacy.__version__
+                try:
+                    nlp = spacy.load("en_core_web_sm")
+                    model_name = "en_core_web_sm"
+                    model_version = nlp.meta["version"]
+                except:
+                    model_name = "en_core_web_sm"
+                    model_version = "not loaded"
+                
+                print(f"Idea Density Analyzer v{app_version}")
+                print(f"spaCy v{spacy_version}")
+                print(f"Model: {model_name} v{model_version}")
+                sys.exit(0)
+        
+        parser.add_argument("--version", action=VersionAction, nargs=0, 
+                            help="Show version information and exit")
+        
         input_group = parser.add_mutually_exclusive_group(required=True)
         input_group.add_argument("--text", nargs="+", help="The text to analyze")
         input_group.add_argument("--file", type=str, help="Path to a file containing text to analyze")
