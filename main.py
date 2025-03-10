@@ -7,9 +7,10 @@ from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, 
                              QLabel, QTabWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QGroupBox, QCheckBox, QFileDialog, QMessageBox,
-                             QToolButton, QSizePolicy, QMenu, QMenuBar)
+                             QToolButton, QSizePolicy, QMenu, QMenuBar, QRadioButton,
+                             QStackedWidget, QScrollArea, QFrame, QGridLayout)
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPixmap
 from ideadensity.idea_density_rater import rate_text
 from ideadensity import depid
 from ideadensity.utils.word_search_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
@@ -67,6 +68,8 @@ class IdeaDensityApp(QWidget):
         self.resize(1000, 700)
         self.current_word_list = None  # Store CPIDR analysis results
         self.current_dependencies = None  # Store DEPID analysis results
+        self.selected_files = []  # Store selected file paths
+        self.input_mode = "text"  # Default input mode: "text" or "file"
         self.setup_ui()
         
     def setup_ui(self):
@@ -79,11 +82,80 @@ class IdeaDensityApp(QWidget):
         about_action.triggered.connect(self.show_about)
         main_layout.setMenuBar(menu_bar)
         
-        # Input area
+        # Input mode selection
+        input_mode_layout = QHBoxLayout()
+        input_mode_layout.addWidget(QLabel("Input Mode:"))
+        
+        self.text_mode_radio = QRadioButton("Text")
+        self.text_mode_radio.setChecked(True)
+        self.text_mode_radio.toggled.connect(self.toggle_input_mode)
+        
+        self.file_mode_radio = QRadioButton("File")
+        self.file_mode_radio.toggled.connect(self.toggle_input_mode)
+        
+        input_mode_layout.addWidget(self.text_mode_radio)
+        input_mode_layout.addWidget(self.file_mode_radio)
+        input_mode_layout.addStretch()
+        
+        main_layout.addLayout(input_mode_layout)
+        
+        # Input stacked widget (contains both text and file input)
+        self.input_stack = QStackedWidget()
+        main_layout.addWidget(self.input_stack)
+        
+        # Text input widget
+        text_input_widget = QWidget()
+        text_input_layout = QVBoxLayout(text_input_widget)
+        text_input_layout.addWidget(QLabel("Input Text:"))
+        
         self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Enter text to analyze...")
-        main_layout.addWidget(QLabel("Input Text:"))
-        main_layout.addWidget(self.text_input)
+        text_input_layout.addWidget(self.text_input)
+        
+        self.input_stack.addWidget(text_input_widget)
+        
+        # File input widget
+        file_input_widget = QWidget()
+        file_input_layout = QVBoxLayout(file_input_widget)
+        
+        file_header_layout = QHBoxLayout()
+        file_header_layout.addWidget(QLabel("Input Files:"))
+        
+        self.select_file_button = QPushButton("Select Files")
+        self.select_file_button.clicked.connect(self.select_files)
+        file_header_layout.addWidget(self.select_file_button)
+        
+        clear_files_button = QPushButton("Clear Files")
+        clear_files_button.clicked.connect(self.clear_files)
+        file_header_layout.addWidget(clear_files_button)
+        
+        file_header_layout.addStretch()
+        file_input_layout.addLayout(file_header_layout)
+        
+        # Scroll area for file list
+        file_scroll = QScrollArea()
+        file_scroll.setWidgetResizable(True)
+        file_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        
+        self.file_list_widget = QWidget()
+        self.file_list_layout = QGridLayout(self.file_list_widget)
+        self.file_list_layout.setColumnMinimumWidth(0, 150)  # Fixed width for each column
+        self.file_list_layout.setColumnMinimumWidth(1, 150)
+        self.file_list_layout.setColumnMinimumWidth(2, 150)
+        self.file_list_layout.setColumnMinimumWidth(3, 150)
+        self.file_list_layout.setColumnMinimumWidth(4, 150)
+        self.file_list_layout.setHorizontalSpacing(10)
+        self.file_list_layout.setVerticalSpacing(10)
+        self.file_list_layout.setContentsMargins(10, 10, 10, 10)
+        self.file_list_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        file_scroll.setWidget(self.file_list_widget)
+        
+        file_input_layout.addWidget(file_scroll)
+        
+        self.input_stack.addWidget(file_input_widget)
+        
+        # Set default to text input
+        self.input_stack.setCurrentIndex(0)
         
         # Tabs for CPIDR and DEPID
         tab_widget = QTabWidget()
@@ -298,11 +370,17 @@ class IdeaDensityApp(QWidget):
         self.setLayout(main_layout)
         
     def analyze_cpidr(self):
-        text = self.text_input.toPlainText()
+        text = self.get_input_text()
         if not text:
-            self.cpidr_results.setText("Please enter some text to analyze.")
+            error_msg = "Please enter some text to analyze." if self.input_mode == "text" else "Please select files to analyze."
+            self.cpidr_results.setText(error_msg)
             return
         
+        # Show processing indicator for large files
+        if len(text) > 10000:
+            self.cpidr_results.setText("Processing text, please wait...")
+            QApplication.processEvents()  # Update UI
+
         speech_mode = self.speech_mode_checkbox.isChecked()
         word_count, proposition_count, density, word_list = rate_text(text, speech_mode=speech_mode)
         
@@ -367,10 +445,16 @@ class IdeaDensityApp(QWidget):
                 row += 1
                 
     def analyze_depid(self):
-        text = self.text_input.toPlainText()
+        text = self.get_input_text()
         if not text:
-            self.depid_results.setText("Please enter some text to analyze.")
+            error_msg = "Please enter some text to analyze." if self.input_mode == "text" else "Please select files to analyze."
+            self.depid_results.setText(error_msg)
             return
+        
+        # Show processing indicator for large files
+        if len(text) > 10000:
+            self.depid_results.setText("Processing text, please wait...")
+            QApplication.processEvents()  # Update UI
         
         is_depid_r = self.depid_r_checkbox.isChecked()
         density, word_count, dependencies = depid(text, is_depid_r=is_depid_r)
@@ -427,7 +511,7 @@ class IdeaDensityApp(QWidget):
             return
             
         # Get the original text
-        text = self.text_input.toPlainText()
+        text = self.get_input_text()
         
         # Get the analysis results
         word_count = sum(1 for item in self.current_word_list.items if item.is_word)
@@ -479,6 +563,165 @@ class IdeaDensityApp(QWidget):
                     self, "Export Error", f"Error exporting dependency details: {str(e)}"
                 )
                 
+    def toggle_input_mode(self, checked):
+        """Toggle between text and file input modes"""
+        if not checked:  # Only respond to the radio button that was checked
+            return
+            
+        if self.sender() == self.text_mode_radio:
+            self.input_mode = "text"
+            self.input_stack.setCurrentIndex(0)
+        else:  # File mode
+            self.input_mode = "file"
+            self.input_stack.setCurrentIndex(1)
+    
+    def select_files(self):
+        """Open file dialog to select input files"""
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "Select Text Files", os.path.expanduser("~"),
+            "Text Files (*.txt);;All Files (*)"
+        )
+        
+        if not files:
+            return
+            
+        # Add files to the list
+        for file_path in files:
+            if file_path not in self.selected_files:
+                self.selected_files.append(file_path)
+                
+        # Update file display
+        self.update_file_display()
+    
+    def clear_files(self):
+        """Clear all selected files"""
+        self.selected_files = []
+        self.update_file_display()
+    
+    def update_file_display(self):
+        """Update the file list display"""
+        # Clear current display
+        while self.file_list_layout.count():
+            item = self.file_list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Add files to grid layout
+        for i, file_path in enumerate(self.selected_files):
+            row, col = divmod(i, 5)  # 5 files per row
+            
+            # Create file item widget with fixed size
+            file_item = QWidget()
+            file_item.setFixedWidth(130)  # Fixed width for each file item
+            
+            # Use absolute positioning for the removal button
+            file_item.setLayout(QVBoxLayout())
+            file_item.layout().setContentsMargins(3, 3, 3, 3)
+            file_item.layout().setSpacing(3)  # Reduce space between elements
+            
+            # Create a container widget for icon and X button
+            icon_container = QWidget()
+            icon_container.setFixedHeight(40)  # Height for icon area
+            icon_container_layout = QHBoxLayout(icon_container)
+            icon_container_layout.setContentsMargins(0, 0, 0, 0)
+            
+            # Icon frame to position the icon and the X button
+            icon_frame = QFrame()
+            icon_frame.setLayout(QGridLayout())
+            icon_frame.layout().setContentsMargins(0, 0, 0, 0)
+            icon_frame.layout().setSpacing(0)
+            
+            # File icon or placeholder
+            icon_label = QLabel()
+            # Try to use system icon for text files
+            if QIcon.hasThemeIcon("text-x-generic"):
+                pixmap = QIcon.fromTheme("text-x-generic").pixmap(32, 32)
+                icon_label.setPixmap(pixmap)
+            else:
+                # Simple placeholder if no system icon
+                icon_label.setText("📄")
+                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                icon_label.setStyleSheet("font-size: 20px;")
+            
+            # Add icon to the frame
+            icon_frame.layout().addWidget(icon_label, 0, 0, Qt.AlignmentFlag.AlignCenter)
+            
+            # Remove button - in the upper right corner
+            remove_btn = QPushButton("×")
+            remove_btn.setToolTip("Remove file")
+            remove_btn.setProperty("file_index", i)
+            remove_btn.clicked.connect(self.remove_file)
+            remove_btn.setFixedWidth(18)
+            remove_btn.setFixedHeight(18)
+            remove_btn.setStyleSheet("""
+                QPushButton {
+                    border-radius: 9px;
+                    background-color: #ff6b6b;
+                    color: white;
+                    font-weight: bold;
+                    padding: 0px;
+                }
+                QPushButton:hover {
+                    background-color: #ff4757;
+                }
+            """)
+            
+            # Position the X button in the upper right of the icon
+            icon_frame.layout().addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+            
+            # Add the frame to the container
+            icon_container_layout.addWidget(icon_frame)
+            
+            # Add the container to the item
+            file_item.layout().addWidget(icon_container)
+            
+            # File name (basename only) - truncated if too long
+            file_name = os.path.basename(file_path)
+            if len(file_name) > 20:
+                display_name = file_name[:17] + "..."
+            else:
+                display_name = file_name
+                
+            name_label = QLabel(display_name)
+            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            name_label.setToolTip(file_path)  # Full path on hover
+            file_item.layout().addWidget(name_label)
+            
+            # Add to grid with alignment
+            self.file_list_layout.addWidget(file_item, row, col, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+    
+    def remove_file(self):
+        """Remove a file from the list"""
+        btn = self.sender()
+        index = btn.property("file_index")
+        
+        if 0 <= index < len(self.selected_files):
+            del self.selected_files[index]
+            self.update_file_display()
+    
+    def get_input_text(self):
+        """Get input text based on current mode"""
+        if self.input_mode == "text":
+            return self.text_input.toPlainText()
+        else:  # File mode
+            if not self.selected_files:
+                return ""
+                
+            # Combine all file contents
+            combined_text = []
+            for file_path in self.selected_files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        file_text = f.read()
+                        combined_text.append(file_text)
+                except Exception as e:
+                    QMessageBox.warning(
+                        self, "File Error", 
+                        f"Error reading file {os.path.basename(file_path)}: {str(e)}"
+                    )
+            
+            return "\n\n".join(combined_text)
+            
     def show_about(self):
         """Show about dialog with version information"""
         app_version = get_version()
