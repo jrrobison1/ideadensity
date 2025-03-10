@@ -370,7 +370,7 @@ class IdeaDensityApp(QWidget):
         self.setLayout(main_layout)
         
     def analyze_cpidr(self):
-        text = self.get_input_text()
+        text, file_info = self.get_input_text()
         if not text:
             error_msg = "Please enter some text to analyze." if self.input_mode == "text" else "Please select files to analyze."
             self.cpidr_results.setText(error_msg)
@@ -389,6 +389,25 @@ class IdeaDensityApp(QWidget):
                        f"Word count: {word_count}<br>"
                        f"Proposition count: {proposition_count}<br>"
                        f"Idea density: {density:.3f}")
+        
+        # Add per-file breakdown if in file mode
+        if self.input_mode == "file" and file_info:
+            result_text += "<br><br><b>Per-file breakdown:</b>"
+            
+            # Process each file separately
+            for file_data in file_info:
+                file_path = file_data["path"]
+                file_text = file_data["text"]
+                file_name = os.path.basename(file_path)
+                
+                # Process this individual file
+                file_word_count, file_prop_count, file_density, _ = rate_text(file_text, speech_mode=speech_mode)
+                
+                result_text += f"<br><br><b>{file_name}</b><br>"
+                result_text += f"Word count: {file_word_count}<br>"
+                result_text += f"Proposition count: {file_prop_count}<br>"
+                result_text += f"Idea density: {file_density:.3f}"
+        
         self.cpidr_results.setText(result_text)
         
         # Save word list for filtering
@@ -445,7 +464,7 @@ class IdeaDensityApp(QWidget):
                 row += 1
                 
     def analyze_depid(self):
-        text = self.get_input_text()
+        text, file_info = self.get_input_text()
         if not text:
             error_msg = "Please enter some text to analyze." if self.input_mode == "text" else "Please select files to analyze."
             self.depid_results.setText(error_msg)
@@ -465,6 +484,25 @@ class IdeaDensityApp(QWidget):
                        f"Word count: {word_count}<br>"
                        f"Dependency count: {len(dependencies)}<br>"
                        f"Idea density: {density:.3f}")
+        
+        # Add per-file breakdown if in file mode
+        if self.input_mode == "file" and file_info:
+            result_text += "<br><br><b>Per-file breakdown:</b>"
+            
+            # Process each file separately
+            for file_data in file_info:
+                file_path = file_data["path"]
+                file_text = file_data["text"]
+                file_name = os.path.basename(file_path)
+                
+                # Process this individual file
+                file_density, file_word_count, file_dependencies = depid(file_text, is_depid_r=is_depid_r)
+                
+                result_text += f"<br><br><b>{file_name}</b><br>"
+                result_text += f"Word count: {file_word_count}<br>"
+                result_text += f"Dependency count: {len(file_dependencies)}<br>"
+                result_text += f"Idea density: {file_density:.3f}"
+        
         self.depid_results.setText(result_text)
         
         # Display dependency details in table
@@ -511,7 +549,7 @@ class IdeaDensityApp(QWidget):
             return
             
         # Get the original text
-        text = self.get_input_text()
+        text, _ = self.get_input_text()
         
         # Get the analysis results
         word_count = sum(1 for item in self.current_word_list.items if item.is_word)
@@ -702,25 +740,36 @@ class IdeaDensityApp(QWidget):
     def get_input_text(self):
         """Get input text based on current mode"""
         if self.input_mode == "text":
-            return self.text_input.toPlainText()
+            return self.text_input.toPlainText(), None
         else:  # File mode
             if not self.selected_files:
-                return ""
+                return "", None
                 
-            # Combine all file contents
-            combined_text = []
+            # Store file texts and paths separately
+            file_texts = []
+            valid_file_paths = []
+            
             for file_path in self.selected_files:
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         file_text = f.read()
-                        combined_text.append(file_text)
+                        file_texts.append(file_text)
+                        valid_file_paths.append(file_path)
                 except Exception as e:
                     QMessageBox.warning(
                         self, "File Error", 
                         f"Error reading file {os.path.basename(file_path)}: {str(e)}"
                     )
             
-            return "\n\n".join(combined_text)
+            if not file_texts:
+                return "", None
+                
+            # Return combined text and list of file paths with corresponding texts
+            file_info = []
+            for path, text in zip(valid_file_paths, file_texts):
+                file_info.append({"path": path, "text": text})
+                
+            return "\n\n".join(file_texts), file_info
             
     def show_about(self):
         """Show about dialog with version information"""
