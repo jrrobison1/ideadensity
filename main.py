@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QPushButton, QT
                              QLabel, QTabWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QGroupBox, QCheckBox, QFileDialog, QMessageBox,
                              QToolButton, QSizePolicy, QMenu, QMenuBar, QRadioButton,
-                             QStackedWidget, QScrollArea, QFrame, QGridLayout)
+                             QStackedWidget, QScrollArea, QFrame, QGridLayout, QComboBox)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from ideadensity.idea_density_rater import rate_text
@@ -68,6 +68,9 @@ class IdeaDensityApp(QWidget):
         self.resize(1000, 700)
         self.current_word_list = None  # Store CPIDR analysis results
         self.current_dependencies = None  # Store DEPID analysis results
+        self.file_word_lists = []  # Store per-file CPIDR analysis results
+        self.file_dependencies = []  # Store per-file DEPID analysis results
+        self.file_names = []  # Store names of processed files
         self.selected_files = []  # Store selected file paths
         self.input_mode = "text"  # Default input mode: "text" or "file"
         self.setup_ui()
@@ -180,6 +183,9 @@ class IdeaDensityApp(QWidget):
         self.cpidr_analyze_btn.clicked.connect(self.analyze_cpidr)
         cpidr_layout.addWidget(self.cpidr_analyze_btn)
         
+        # File filter combobox
+        self.cpidr_file_combo = self.setup_file_filter(cpidr_layout)
+        
         results_layout = QHBoxLayout()
         
         # Results section
@@ -197,6 +203,11 @@ class IdeaDensityApp(QWidget):
         
         # Header with filters and export button
         header_layout = QHBoxLayout()
+        
+        # Add file indication label to show which file's tokens are displayed
+        self.token_file_label = QLabel("")
+        self.token_file_label.setStyleSheet("color: #0066cc; font-weight: bold;")
+        header_layout.addWidget(self.token_file_label)
         
         # Filter options layout
         filter_layout = QHBoxLayout()
@@ -296,6 +307,9 @@ class IdeaDensityApp(QWidget):
         self.depid_analyze_btn.clicked.connect(self.analyze_depid)
         depid_layout.addWidget(self.depid_analyze_btn)
         
+        # File filter combobox
+        self.depid_file_combo = self.setup_file_filter(depid_layout)
+        
         depid_results_layout = QHBoxLayout()
         
         # DEPID Results
@@ -313,6 +327,12 @@ class IdeaDensityApp(QWidget):
         
         # Header for export button
         header_layout = QHBoxLayout()
+        
+        # Add file indication label for dependencies
+        self.dependency_file_label = QLabel("")
+        self.dependency_file_label.setStyleSheet("color: #0066cc; font-weight: bold;")
+        header_layout.addWidget(self.dependency_file_label)
+        
         header_layout.addStretch()
         
         # Export CSV button (as an icon if possible, otherwise text)
@@ -390,6 +410,14 @@ class IdeaDensityApp(QWidget):
                        f"Proposition count: {proposition_count}<br>"
                        f"Idea density: {density:.3f}")
         
+        # Reset file data
+        self.file_word_lists = []
+        self.file_names = []
+        
+        # Update file filter dropdown
+        self.cpidr_file_combo.clear()
+        self.cpidr_file_combo.addItem("All files (combined)")
+        
         # Add per-file breakdown if in file mode
         if self.input_mode == "file" and file_info:
             result_text += "<br><br><b>Per-file breakdown:</b>"
@@ -401,12 +429,28 @@ class IdeaDensityApp(QWidget):
                 file_name = os.path.basename(file_path)
                 
                 # Process this individual file
-                file_word_count, file_prop_count, file_density, _ = rate_text(file_text, speech_mode=speech_mode)
+                file_word_count, file_prop_count, file_density, file_word_list = rate_text(
+                    file_text, speech_mode=speech_mode
+                )
                 
+                # Store file results for table filtering
+                self.file_word_lists.append(file_word_list)
+                self.file_names.append(file_name)
+                
+                # Add to dropdown
+                self.cpidr_file_combo.addItem(file_name)
+                
+                # Add to summary text
                 result_text += f"<br><br><b>{file_name}</b><br>"
                 result_text += f"Word count: {file_word_count}<br>"
                 result_text += f"Proposition count: {file_prop_count}<br>"
                 result_text += f"Idea density: {file_density:.3f}"
+            
+            # Enable file filter only if we have multiple files
+            self.cpidr_file_combo.setEnabled(len(file_info) > 0)
+        else:
+            # Disable file filter for text mode
+            self.cpidr_file_combo.setEnabled(False)
         
         self.cpidr_results.setText(result_text)
         
@@ -436,14 +480,35 @@ class IdeaDensityApp(QWidget):
         self.update_token_table()
         
     def update_token_table(self):
-        """Update the token table based on current filters"""
-        if not self.current_word_list:
+        """Update the token table based on current filters and file selection"""
+        if not self.current_word_list and not self.file_word_lists:
             return
             
         self.word_table.setRowCount(0)
         row = 0
         
-        for word in self.current_word_list.items:
+        # Determine which word list to display
+        selected_index = self.cpidr_file_combo.currentIndex()
+        
+        # If "All files (combined)" or in text mode
+        if selected_index == 0 or not self.file_word_lists:
+            word_list = self.current_word_list
+            self.token_file_label.setText("Showing: All files (combined)")
+        else:
+            # Adjust for 0-based index and the "All files" item
+            file_index = selected_index - 1
+            if file_index < len(self.file_word_lists):
+                word_list = self.file_word_lists[file_index]
+                self.token_file_label.setText(f"Showing: {self.file_names[file_index]}")
+            else:
+                word_list = self.current_word_list
+                self.token_file_label.setText("Showing: All files (combined)")
+        
+        if not word_list:
+            return
+            
+        # Update table with selected word list
+        for word in word_list.items:
             if not word.token:  # Skip empty tokens
                 continue
                 
@@ -485,6 +550,15 @@ class IdeaDensityApp(QWidget):
                        f"Dependency count: {len(dependencies)}<br>"
                        f"Idea density: {density:.3f}")
         
+        # Reset file data
+        self.file_dependencies = []
+        if not hasattr(self, 'file_names') or self.input_mode == "file":
+            self.file_names = []
+        
+        # Update file filter dropdown
+        self.depid_file_combo.clear()
+        self.depid_file_combo.addItem("All files (combined)")
+        
         # Add per-file breakdown if in file mode
         if self.input_mode == "file" and file_info:
             result_text += "<br><br><b>Per-file breakdown:</b>"
@@ -498,23 +572,31 @@ class IdeaDensityApp(QWidget):
                 # Process this individual file
                 file_density, file_word_count, file_dependencies = depid(file_text, is_depid_r=is_depid_r)
                 
+                # Store file results for table filtering
+                self.file_dependencies.append(file_dependencies)
+                if not self.file_names or len(self.file_names) <= len(self.file_dependencies) - 1:
+                    self.file_names.append(file_name)
+                
+                # Add to dropdown
+                self.depid_file_combo.addItem(file_name)
+                
+                # Add to summary text
                 result_text += f"<br><br><b>{file_name}</b><br>"
                 result_text += f"Word count: {file_word_count}<br>"
                 result_text += f"Dependency count: {len(file_dependencies)}<br>"
                 result_text += f"Idea density: {file_density:.3f}"
+            
+            # Enable file filter only if we have multiple files
+            self.depid_file_combo.setEnabled(len(file_info) > 0)
+        else:
+            # Disable file filter for text mode
+            self.depid_file_combo.setEnabled(False)
         
         self.depid_results.setText(result_text)
         
         # Display dependency details in table
-        self.dependency_table.setRowCount(0)
-        for i, dep in enumerate(dependencies):
-            self.dependency_table.insertRow(i)
-            self.dependency_table.setItem(i, 0, QTableWidgetItem(str(dep[0])))
-            self.dependency_table.setItem(i, 1, QTableWidgetItem(str(dep[1])))
-            self.dependency_table.setItem(i, 2, QTableWidgetItem(str(dep[2])))
-            
-        # Save dependencies for CSV export
         self.current_dependencies = dependencies
+        self.update_dependency_table()
         
         # Enable export button
         self.depid_export_btn.setEnabled(True)
@@ -736,6 +818,66 @@ class IdeaDensityApp(QWidget):
         if 0 <= index < len(self.selected_files):
             del self.selected_files[index]
             self.update_file_display()
+    
+    def setup_file_filter(self, layout, wrapper_layout=None):
+        """Create and add file filter dropdown for either CPIDR or DEPID"""
+        file_filter_layout = QHBoxLayout()
+        file_filter_layout.addWidget(QLabel("Show data for:"))
+        
+        self.file_filter_combo = QComboBox()
+        self.file_filter_combo.addItem("All files (combined)")
+        self.file_filter_combo.setEnabled(False)  # Disabled until multiple files analyzed
+        self.file_filter_combo.currentIndexChanged.connect(self.file_filter_changed)
+        
+        file_filter_layout.addWidget(self.file_filter_combo)
+        file_filter_layout.addStretch()
+        
+        if wrapper_layout:
+            wrapper_layout.addLayout(file_filter_layout)
+        else:
+            layout.addLayout(file_filter_layout)
+            
+        return self.file_filter_combo
+    
+    def file_filter_changed(self):
+        """Handler for when file filter is changed"""
+        # Update displays based on selected file
+        self.update_token_table()
+        self.update_dependency_table()
+        
+    def update_dependency_table(self):
+        """Update the dependency table based on file selection"""
+        if not self.current_dependencies and not self.file_dependencies:
+            return
+            
+        self.dependency_table.setRowCount(0)
+        
+        # Determine which dependencies to display
+        selected_index = self.depid_file_combo.currentIndex()
+        
+        # If "All files (combined)" or in text mode
+        if selected_index == 0 or not self.file_dependencies:
+            dependencies = self.current_dependencies
+            self.dependency_file_label.setText("Showing: All files (combined)")
+        else:
+            # Adjust for 0-based index and the "All files" item
+            file_index = selected_index - 1
+            if file_index < len(self.file_dependencies):
+                dependencies = self.file_dependencies[file_index]
+                self.dependency_file_label.setText(f"Showing: {self.file_names[file_index]}")
+            else:
+                dependencies = self.current_dependencies
+                self.dependency_file_label.setText("Showing: All files (combined)")
+        
+        if not dependencies:
+            return
+            
+        # Update table with selected dependencies
+        for i, dep in enumerate(dependencies):
+            self.dependency_table.insertRow(i)
+            self.dependency_table.setItem(i, 0, QTableWidgetItem(str(dep[0])))
+            self.dependency_table.setItem(i, 1, QTableWidgetItem(str(dep[1])))
+            self.dependency_table.setItem(i, 2, QTableWidgetItem(str(dep[2])))
     
     def get_input_text(self):
         """Get input text based on current mode"""
