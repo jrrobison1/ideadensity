@@ -40,6 +40,7 @@ from ideadensity.utils.export_utils import (
     export_depid_to_csv,
     export_cpidr_to_txt,
     export_cpidr_multiple_files_to_txt,
+    export_summary_to_txt,
 )
 from ideadensity.utils.version_utils import get_spacy_version_info
 
@@ -262,9 +263,62 @@ class IdeaDensityApp(QWidget):
         # Results section
         cpidr_results_group = QGroupBox("Summary")
         cpidr_results_layout = QVBoxLayout()
+
+        # Header with title and download button
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 5)
+
+        # Empty label to take up space (will be filled with content later)
+        header_placeholder = QLabel()
+        header_layout.addWidget(
+            header_placeholder, 1
+        )  # Stretch factor to push button right
+
+        # Download button
+        self.cpidr_summary_export_btn = QToolButton()
+        self.cpidr_summary_export_btn.setToolTip("Download Summary")
+        self.cpidr_summary_export_btn.clicked.connect(self.export_cpidr_summary)
+        self.cpidr_summary_export_btn.setEnabled(
+            False
+        )  # Disabled until analysis is run
+
+        # Set an icon (try system theme first, then fall back)
+        icon_set = False
+        # Try system theme icon
+        if QIcon.hasThemeIcon("document-save-as") and not icon_set:
+            self.cpidr_summary_export_btn.setIcon(QIcon.fromTheme("document-save-as"))
+            icon_set = True
+        elif QIcon.hasThemeIcon("document-save") and not icon_set:
+            self.cpidr_summary_export_btn.setIcon(QIcon.fromTheme("document-save"))
+            icon_set = True
+
+        # If no system icon, use a text alternative with styling
+        if not icon_set:
+            self.cpidr_summary_export_btn.setText("↓")
+            self.cpidr_summary_export_btn.setStyleSheet(
+                """
+                QToolButton {
+                    padding: 3px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    background-color: #f8f8f8;
+                }
+                QToolButton:hover {
+                    background-color: #e8e8e8;
+                }
+            """
+            )
+
+        self.cpidr_summary_export_btn.setIconSize(QSize(16, 16))
+        header_layout.addWidget(self.cpidr_summary_export_btn)
+
+        cpidr_results_layout.addLayout(header_layout)
+
+        # Results content
         self.cpidr_results = QLabel("Results will appear here")
         self.cpidr_results.setAlignment(Qt.AlignmentFlag.AlignTop)
         cpidr_results_layout.addWidget(self.cpidr_results)
+
         cpidr_results_group.setLayout(cpidr_results_layout)
         results_layout.addWidget(cpidr_results_group, 1)  # Stretch factor 1
 
@@ -411,9 +465,62 @@ class IdeaDensityApp(QWidget):
         # DEPID Results
         depid_results_group = QGroupBox("Summary")
         depid_summary_layout = QVBoxLayout()
+
+        # Header with title and download button
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 5)
+
+        # Empty label to take up space (will be filled with content later)
+        header_placeholder = QLabel()
+        header_layout.addWidget(
+            header_placeholder, 1
+        )  # Stretch factor to push button right
+
+        # Download button
+        self.depid_summary_export_btn = QToolButton()
+        self.depid_summary_export_btn.setToolTip("Download Summary")
+        self.depid_summary_export_btn.clicked.connect(self.export_depid_summary)
+        self.depid_summary_export_btn.setEnabled(
+            False
+        )  # Disabled until analysis is run
+
+        # Set an icon (try system theme first, then fall back)
+        icon_set = False
+        # Try system theme icon
+        if QIcon.hasThemeIcon("document-save-as") and not icon_set:
+            self.depid_summary_export_btn.setIcon(QIcon.fromTheme("document-save-as"))
+            icon_set = True
+        elif QIcon.hasThemeIcon("document-save") and not icon_set:
+            self.depid_summary_export_btn.setIcon(QIcon.fromTheme("document-save"))
+            icon_set = True
+
+        # If no system icon, use a text alternative with styling
+        if not icon_set:
+            self.depid_summary_export_btn.setText("↓")
+            self.depid_summary_export_btn.setStyleSheet(
+                """
+                QToolButton {
+                    padding: 3px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    background-color: #f8f8f8;
+                }
+                QToolButton:hover {
+                    background-color: #e8e8e8;
+                }
+            """
+            )
+
+        self.depid_summary_export_btn.setIconSize(QSize(16, 16))
+        header_layout.addWidget(self.depid_summary_export_btn)
+
+        depid_summary_layout.addLayout(header_layout)
+
+        # Results content
         self.depid_results = QLabel("Results will appear here")
         self.depid_results.setAlignment(Qt.AlignmentFlag.AlignTop)
         depid_summary_layout.addWidget(self.depid_results)
+
         depid_results_group.setLayout(depid_summary_layout)
         depid_results_layout.addWidget(depid_results_group, 1)  # Stretch factor 1
 
@@ -539,6 +646,16 @@ class IdeaDensityApp(QWidget):
         self.file_word_lists = []
         self.file_names = []
 
+        # Store combined results for exporting - we will exclude these during export
+        self.cpidr_combined_ideas_count = proposition_count
+        self.cpidr_combined_word_count = word_count
+        self.cpidr_combined_density = density
+
+        # Initialize per-file results lists (without combined results)
+        self.cpidr_ideas_counts = []
+        self.cpidr_word_counts = []
+        self.cpidr_densities = []
+
         # Update file filter dropdown
         self.cpidr_file_combo.clear()
         self.cpidr_file_combo.addItem("All files (combined)")
@@ -562,6 +679,11 @@ class IdeaDensityApp(QWidget):
                 self.file_word_lists.append(file_word_list)
                 self.file_names.append(file_name)
 
+                # Store results for exporting
+                self.cpidr_ideas_counts.append(file_prop_count)
+                self.cpidr_word_counts.append(file_word_count)
+                self.cpidr_densities.append(file_density)
+
                 # Add to dropdown
                 self.cpidr_file_combo.addItem(file_name)
 
@@ -577,14 +699,21 @@ class IdeaDensityApp(QWidget):
             # Disable file filter for text mode
             self.cpidr_file_combo.setEnabled(False)
 
+            # For text mode, use placeholder filename
+            if not self.file_names:
+                self.file_names = ["input_text"]
+
         self.cpidr_results.setText(result_text)
 
         # Save word list for filtering
         self.current_word_list = word_list
         self.update_token_table()
 
-        # Enable export button
+        # Enable export buttons
         self.cpidr_export_btn.setEnabled(True)
+
+        # Only enable summary export in file mode
+        self.cpidr_summary_export_btn.setEnabled(self.input_mode == "file")
 
     def update_token_filters(self):
         """Update token table based on filter checkboxes"""
@@ -700,8 +829,18 @@ class IdeaDensityApp(QWidget):
 
         # Reset file data
         self.file_dependencies = []
-        if not hasattr(self, "file_names") or self.input_mode == "file":
-            self.file_names = []
+        self.file_names = []  # Always reset file names for consistency
+
+        # Store combined results for exporting - we will exclude these during export
+        self.depid_analyzer_type = method_name
+        self.depid_combined_ideas_count = len(dependencies)
+        self.depid_combined_word_count = word_count
+        self.depid_combined_density = density
+
+        # Initialize per-file results lists (without combined results)
+        self.depid_ideas_counts = []
+        self.depid_word_counts = []
+        self.depid_densities = []
 
         # Update file filter dropdown
         self.depid_file_combo.clear()
@@ -724,11 +863,12 @@ class IdeaDensityApp(QWidget):
 
                 # Store file results for table filtering
                 self.file_dependencies.append(file_dependencies)
-                if (
-                    not self.file_names
-                    or len(self.file_names) <= len(self.file_dependencies) - 1
-                ):
-                    self.file_names.append(file_name)
+                self.file_names.append(file_name)  # Always add the file name
+
+                # Store results for exporting
+                self.depid_ideas_counts.append(len(file_dependencies))
+                self.depid_word_counts.append(file_word_count)
+                self.depid_densities.append(file_density)
 
                 # Add to dropdown
                 self.depid_file_combo.addItem(file_name)
@@ -745,14 +885,21 @@ class IdeaDensityApp(QWidget):
             # Disable file filter for text mode
             self.depid_file_combo.setEnabled(False)
 
+            # For text mode, use placeholder filename
+            if not self.file_names:
+                self.file_names = ["input_text"]
+
         self.depid_results.setText(result_text)
 
         # Display dependency details in table
         self.current_dependencies = dependencies
         self.update_dependency_table()
 
-        # Enable export button
+        # Enable export buttons
         self.depid_export_btn.setEnabled(True)
+
+        # Only enable summary export in file mode
+        self.depid_summary_export_btn.setEnabled(self.input_mode == "file")
 
     def export_cpidr_csv(self):
         """Export CPIDR token details to a CSV file"""
@@ -909,6 +1056,96 @@ class IdeaDensityApp(QWidget):
                     self,
                     "Export Error",
                     f"Error exporting dependency details: {str(e)}",
+                )
+
+    def export_cpidr_summary(self):
+        """Export CPIDR summary results to a TXT file"""
+        if not self.file_names:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+
+        if self.input_mode != "file":
+            QMessageBox.warning(
+                self,
+                "Export Error",
+                "Summary export is only available in file input mode.",
+            )
+            return
+
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Summary TXT File",
+            os.path.expanduser("~/cpidr_summary.txt"),
+            "Text Files (*.txt);;All Files (*)",
+        )
+
+        if file_path:
+            try:
+                export_summary_to_txt(
+                    "CPIDR",
+                    self.file_names,
+                    self.cpidr_ideas_counts,
+                    self.cpidr_word_counts,
+                    self.cpidr_densities,
+                    file_path,
+                )
+
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Summary exported to {file_path}",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting summary: {str(e)}"
+                )
+
+    def export_depid_summary(self):
+        """Export DEPID summary results to a TXT file"""
+        if not self.file_names:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+
+        if self.input_mode != "file":
+            QMessageBox.warning(
+                self,
+                "Export Error",
+                "Summary export is only available in file input mode.",
+            )
+            return
+
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Summary TXT File",
+            os.path.expanduser("~/depid_summary.txt"),
+            "Text Files (*.txt);;All Files (*)",
+        )
+
+        if file_path:
+            try:
+                export_summary_to_txt(
+                    (
+                        self.depid_analyzer_type
+                        if hasattr(self, "depid_analyzer_type")
+                        else "DEPID"
+                    ),
+                    self.file_names,
+                    self.depid_ideas_counts,
+                    self.depid_word_counts,
+                    self.depid_densities,
+                    file_path,
+                )
+
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Summary exported to {file_path}",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting summary: {str(e)}"
                 )
 
     def toggle_input_mode(self, checked):

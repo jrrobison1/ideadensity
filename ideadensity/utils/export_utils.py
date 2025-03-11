@@ -6,6 +6,48 @@ from ideadensity.word_item import WordListItem, WordList
 from ideadensity.utils.version_utils import VERSION, get_spacy_version_info
 
 
+def export_summary_to_txt(
+    analyzer_type: str,
+    file_names: List[str],
+    ideas_counts: List[int],
+    word_counts: List[int],
+    densities: List[float],
+    filepath: str,
+) -> None:
+    """
+    Export summary results to a text file in the specified format
+    
+    Args:
+        analyzer_type: "CPIDR" or "DEPID" indicating which analysis method was used
+        file_names: List of file names analyzed
+        ideas_counts: List of proposition/dependency counts for each file
+        word_counts: List of word counts for each file
+        densities: List of density values for each file
+        filepath: Path where the text file should be saved
+    """
+    # Ensure directory exists
+    os.makedirs(
+        os.path.dirname(filepath) if os.path.dirname(filepath) else ".", exist_ok=True
+    )
+    
+    with open(filepath, "w", encoding="utf-8") as txtfile:
+        # Header with ideadensity version and spaCy info
+        spacy_version, model_name, model_version = get_spacy_version_info()
+        txtfile.write(f"ideadensity {VERSION}\n")
+        txtfile.write(f"Using spaCy {spacy_version}, {model_name} {model_version}\n\n")
+        
+        # Table header
+        txtfile.write("Mode    Ideas    Words    Density\n")
+        
+        # Write each file's data
+        for i, (filename, ideas, words, density) in enumerate(
+            zip(file_names, ideas_counts, word_counts, densities)
+        ):
+            txtfile.write(
+                f"{analyzer_type:<5} {ideas:>8} {words:>8} {density:>10.3f}    \"{filename}\"\n"
+            )
+
+
 def export_cpidr_to_csv(word_list: WordList, filepath: str) -> None:
     """
     Export token details from CPIDR analysis to a CSV file
