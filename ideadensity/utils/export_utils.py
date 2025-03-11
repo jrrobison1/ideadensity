@@ -3,7 +3,37 @@ import os
 from typing import List, Tuple, Any, TextIO, Dict, Optional
 
 from ideadensity.word_item import WordListItem, WordList
-from ideadensity.utils.version_utils import VERSION, get_spacy_version_info
+from ideadensity.utils.version_utils import get_spacy_version_info
+
+# Import the get_version function from main.py
+import sys
+import importlib.util
+import pathlib
+
+
+def get_version():
+    """Get version from pyproject.toml like main.py does"""
+    try:
+        # Try to find the project root by searching for pyproject.toml
+        current_path = pathlib.Path(__file__).resolve().parent
+        for _ in range(5):  # Try up to 5 levels up
+            pyproject_path = current_path / "pyproject.toml"
+            if pyproject_path.exists():
+                break
+            current_path = current_path.parent
+
+        # If found, read the version
+        if pyproject_path.exists():
+            import tomli
+
+            with open(pyproject_path, "rb") as f:
+                pyproject_data = tomli.load(f)
+            return pyproject_data["tool"]["poetry"]["version"]
+    except (FileNotFoundError, KeyError, ImportError):
+        pass
+
+    # Fallback to hardcoded version - using same fallback as main.py
+    return "Unknown Version"  # Update hardcoded version to match current version
 
 
 def export_summary_to_csv(
@@ -16,7 +46,7 @@ def export_summary_to_csv(
 ) -> None:
     """
     Export summary results to a CSV file
-    
+
     Args:
         analyzer_type: "CPIDR" or "DEPID" indicating which analysis method was used
         file_names: List of file names analyzed
@@ -29,19 +59,19 @@ def export_summary_to_csv(
     os.makedirs(
         os.path.dirname(filepath) if os.path.dirname(filepath) else ".", exist_ok=True
     )
-    
+
     with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        
+
         # Write metadata as comments (first three rows)
         spacy_version, model_name, model_version = get_spacy_version_info()
-        writer.writerow(["# ideadensity", VERSION])
+        writer.writerow(["# ideadensity", get_version()])
         writer.writerow(["# Using spaCy", spacy_version, model_name, model_version])
         writer.writerow([])  # Empty row for spacing
-        
+
         # Table header
         writer.writerow(["Mode", "Ideas", "Words", "Density", "Filename"])
-        
+
         # Write each file's data
         for filename, ideas, words, density in zip(
             file_names, ideas_counts, word_counts, densities
@@ -59,7 +89,7 @@ def export_summary_to_txt(
 ) -> None:
     """
     Export summary results to a text file in the specified format
-    
+
     Args:
         analyzer_type: "CPIDR" or "DEPID" indicating which analysis method was used
         file_names: List of file names analyzed
@@ -72,22 +102,22 @@ def export_summary_to_txt(
     os.makedirs(
         os.path.dirname(filepath) if os.path.dirname(filepath) else ".", exist_ok=True
     )
-    
+
     with open(filepath, "w", encoding="utf-8") as txtfile:
         # Header with ideadensity version and spaCy info
         spacy_version, model_name, model_version = get_spacy_version_info()
-        txtfile.write(f"ideadensity {VERSION}\n")
+        txtfile.write(f"ideadensity {get_version()}\n")
         txtfile.write(f"Using spaCy {spacy_version}, {model_name} {model_version}\n\n")
-        
+
         # Table header
         txtfile.write("Mode    Ideas    Words    Density\n")
-        
+
         # Write each file's data
         for i, (filename, ideas, words, density) in enumerate(
             zip(file_names, ideas_counts, word_counts, densities)
         ):
             txtfile.write(
-                f"{analyzer_type:<5} {ideas:>8} {words:>8} {density:>10.3f}    \"{filename}\"\n"
+                f'{analyzer_type:<5} {ideas:>8} {words:>8} {density:>10.3f}    "{filename}"\n'
             )
 
 
@@ -182,7 +212,7 @@ def export_cpidr_to_txt(
     with open(filepath, "w", encoding="utf-8") as txtfile:
         # Header with ideadensity version and spaCy info
         spacy_version, model_name, model_version = get_spacy_version_info()
-        txtfile.write(f"ideadensity {VERSION}\n")
+        txtfile.write(f"ideadensity {get_version()}\n")
         txtfile.write(
             f"Using spaCy {spacy_version}, {model_name} {model_version}\n\n\n"
         )
@@ -247,7 +277,7 @@ def export_cpidr_multiple_files_to_txt(
     with open(filepath, "w", encoding="utf-8") as txtfile:
         # Header with ideadensity version and spaCy info
         spacy_version, model_name, model_version = get_spacy_version_info()
-        txtfile.write(f"ideadensity {VERSION}\n")
+        txtfile.write(f"ideadensity {get_version()}\n")
         txtfile.write(
             f"Using spaCy {spacy_version}, {model_name} {model_version}\n\n\n"
         )
@@ -257,19 +287,21 @@ def export_cpidr_multiple_files_to_txt(
             # Add separation between files
             if i > 0:
                 txtfile.write("\n\n\n")
-            
+
             # Filename header
             txtfile.write(f'"{filename}"\n')
-            
+
             # Word count and proposition count for this file
             word_count = sum(1 for item in word_list.items if item.is_word)
-            proposition_count = sum(1 for item in word_list.items if item.is_proposition)
-            
+            proposition_count = sum(
+                1 for item in word_list.items if item.is_proposition
+            )
+
             # Calculate density
             density = 0.0
             if word_count > 0:
                 density = proposition_count / word_count
-            
+
             # Token details
             for item in word_list.items:
                 # Skip empty tokens (those initialized with default constructor)
@@ -280,7 +312,9 @@ def export_cpidr_multiple_files_to_txt(
                 try:
                     # Try to convert to int first to handle numeric rule numbers
                     rule_num = (
-                        str(int(item.rule_number)).zfill(3) if item.rule_number else "   "
+                        str(int(item.rule_number)).zfill(3)
+                        if item.rule_number
+                        else "   "
                     )
                 except (ValueError, TypeError):
                     # If rule_number is not convertible to int, use "   "
