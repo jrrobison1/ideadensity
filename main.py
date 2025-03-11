@@ -67,6 +67,8 @@ class IdeaDensityApp(QWidget):
         super().__init__()
         self.setWindowTitle("Idea Density Analyzer")
         self.resize(1000, 700)
+        # Make the window start maximized
+        self.setWindowState(Qt.WindowState.WindowMaximized)
         self.current_word_list = None  # Store CPIDR analysis results
         self.current_dependencies = None  # Store DEPID analysis results
         self.file_word_lists = []  # Store per-file CPIDR analysis results
@@ -125,12 +127,23 @@ class IdeaDensityApp(QWidget):
         file_header_layout = QHBoxLayout()
         file_header_layout.addWidget(QLabel("Input Files:"))
         
-        self.select_file_button = QPushButton("Select Files")
+        self.select_file_button = QPushButton("Browse...")
         self.select_file_button.clicked.connect(self.select_files)
         file_header_layout.addWidget(self.select_file_button)
         
-        clear_files_button = QPushButton("Clear Files")
+        clear_files_button = QToolButton()
+        clear_files_button.setToolTip("Clear Files")
         clear_files_button.clicked.connect(self.clear_files)
+        
+        # Try to use system icon for clear/trash
+        if QIcon.hasThemeIcon("edit-clear"):
+            clear_files_button.setIcon(QIcon.fromTheme("edit-clear"))
+        elif QIcon.hasThemeIcon("trash-empty"):
+            clear_files_button.setIcon(QIcon.fromTheme("trash-empty"))
+        else:
+            # Simple text alternative if no system icon
+            clear_files_button.setText("🗑️")
+            clear_files_button.setStyleSheet("font-size: 16px;")
         file_header_layout.addWidget(clear_files_button)
         
         file_header_layout.addStretch()
@@ -141,17 +154,17 @@ class IdeaDensityApp(QWidget):
         file_scroll.setWidgetResizable(True)
         file_scroll.setFrameShape(QFrame.Shape.NoFrame)
         
-        self.file_list_widget = QWidget()
-        self.file_list_layout = QGridLayout(self.file_list_widget)
-        self.file_list_layout.setColumnMinimumWidth(0, 150)  # Fixed width for each column
-        self.file_list_layout.setColumnMinimumWidth(1, 150)
-        self.file_list_layout.setColumnMinimumWidth(2, 150)
-        self.file_list_layout.setColumnMinimumWidth(3, 150)
-        self.file_list_layout.setColumnMinimumWidth(4, 150)
-        self.file_list_layout.setHorizontalSpacing(10)
-        self.file_list_layout.setVerticalSpacing(10)
-        self.file_list_layout.setContentsMargins(10, 10, 10, 10)
-        self.file_list_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        # Create a table for file display
+        self.file_list_widget = QTableWidget()
+        self.file_list_widget.setColumnCount(4)
+        self.file_list_widget.setHorizontalHeaderLabels(["File Name", "Size", "Full Path", ""])
+        self.file_list_widget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)  # Stretch file name
+        self.file_list_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Size
+        self.file_list_widget.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)  # Full path
+        self.file_list_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Delete icon
+        self.file_list_widget.setColumnWidth(3, 40)  # Fixed width for delete column
+        self.file_list_widget.verticalHeader().setVisible(False)  # Hide row numbers
+        self.file_list_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         file_scroll.setWidget(self.file_list_widget)
         
         file_input_layout.addWidget(file_scroll)
@@ -184,8 +197,7 @@ class IdeaDensityApp(QWidget):
         self.cpidr_analyze_btn.clicked.connect(self.analyze_cpidr)
         cpidr_layout.addWidget(self.cpidr_analyze_btn)
         
-        # File filter combobox
-        self.cpidr_file_combo = self.setup_file_filter(cpidr_layout)
+        # We'll move the file filter combobox to the token details section
         
         results_layout = QHBoxLayout()
         
@@ -205,10 +217,17 @@ class IdeaDensityApp(QWidget):
         # Header with filters and export button
         header_layout = QHBoxLayout()
         
-        # Add file indication label to show which file's tokens are displayed
-        self.token_file_label = QLabel("")
-        self.token_file_label.setStyleSheet("color: #0066cc; font-weight: bold;")
-        header_layout.addWidget(self.token_file_label)
+        # Add file filter dropdown in place of the file indication label
+        file_filter_layout = QHBoxLayout()
+        file_filter_layout.addWidget(QLabel("Show data for:"))
+        
+        self.cpidr_file_combo = QComboBox()
+        self.cpidr_file_combo.addItem("All files (combined)")
+        self.cpidr_file_combo.setEnabled(False)  # Disabled until multiple files analyzed
+        self.cpidr_file_combo.currentIndexChanged.connect(self.file_filter_changed)
+        
+        file_filter_layout.addWidget(self.cpidr_file_combo)
+        header_layout.addLayout(file_filter_layout)
         
         # Filter options layout
         filter_layout = QHBoxLayout()
@@ -308,8 +327,7 @@ class IdeaDensityApp(QWidget):
         self.depid_analyze_btn.clicked.connect(self.analyze_depid)
         depid_layout.addWidget(self.depid_analyze_btn)
         
-        # File filter combobox
-        self.depid_file_combo = self.setup_file_filter(depid_layout)
+        # We'll move the file filter combobox to the dependency details section
         
         depid_results_layout = QHBoxLayout()
         
@@ -329,10 +347,17 @@ class IdeaDensityApp(QWidget):
         # Header for export button
         header_layout = QHBoxLayout()
         
-        # Add file indication label for dependencies
-        self.dependency_file_label = QLabel("")
-        self.dependency_file_label.setStyleSheet("color: #0066cc; font-weight: bold;")
-        header_layout.addWidget(self.dependency_file_label)
+        # Add file filter dropdown in place of the file indication label
+        file_filter_layout = QHBoxLayout()
+        file_filter_layout.addWidget(QLabel("Show data for:"))
+        
+        self.depid_file_combo = QComboBox()
+        self.depid_file_combo.addItem("All files (combined)")
+        self.depid_file_combo.setEnabled(False)  # Disabled until multiple files analyzed
+        self.depid_file_combo.currentIndexChanged.connect(self.file_filter_changed)
+        
+        file_filter_layout.addWidget(self.depid_file_combo)
+        header_layout.addLayout(file_filter_layout)
         
         header_layout.addStretch()
         
@@ -494,16 +519,13 @@ class IdeaDensityApp(QWidget):
         # If "All files (combined)" or in text mode
         if selected_index == 0 or not self.file_word_lists:
             word_list = self.current_word_list
-            self.token_file_label.setText("Showing: All files (combined)")
         else:
             # Adjust for 0-based index and the "All files" item
             file_index = selected_index - 1
             if file_index < len(self.file_word_lists):
                 word_list = self.file_word_lists[file_index]
-                self.token_file_label.setText(f"Showing: {self.file_names[file_index]}")
             else:
                 word_list = self.current_word_list
-                self.token_file_label.setText("Showing: All files (combined)")
         
         if not word_list:
             return
@@ -771,94 +793,72 @@ class IdeaDensityApp(QWidget):
     def update_file_display(self):
         """Update the file list display"""
         # Clear current display
-        while self.file_list_layout.count():
-            item = self.file_list_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        self.file_list_widget.setRowCount(0)
         
-        # Add files to grid layout
+        # Add files to table
         for i, file_path in enumerate(self.selected_files):
-            row, col = divmod(i, 5)  # 5 files per row
-            
-            # Create file item widget with fixed size
-            file_item = QWidget()
-            file_item.setFixedWidth(130)  # Fixed width for each file item
-            
-            # Use absolute positioning for the removal button
-            file_item.setLayout(QVBoxLayout())
-            file_item.layout().setContentsMargins(3, 3, 3, 3)
-            file_item.layout().setSpacing(3)  # Reduce space between elements
-            
-            # Create a container widget for icon and X button
-            icon_container = QWidget()
-            icon_container.setFixedHeight(40)  # Height for icon area
-            icon_container_layout = QHBoxLayout(icon_container)
-            icon_container_layout.setContentsMargins(0, 0, 0, 0)
-            
-            # Icon frame to position the icon and the X button
-            icon_frame = QFrame()
-            icon_frame.setLayout(QGridLayout())
-            icon_frame.layout().setContentsMargins(0, 0, 0, 0)
-            icon_frame.layout().setSpacing(0)
-            
-            # File icon or placeholder
-            icon_label = QLabel()
-            # Try to use system icon for text files
-            if QIcon.hasThemeIcon("text-x-generic"):
-                pixmap = QIcon.fromTheme("text-x-generic").pixmap(32, 32)
-                icon_label.setPixmap(pixmap)
-            else:
-                # Simple placeholder if no system icon
-                icon_label.setText("📄")
-                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                icon_label.setStyleSheet("font-size: 20px;")
-            
-            # Add icon to the frame
-            icon_frame.layout().addWidget(icon_label, 0, 0, Qt.AlignmentFlag.AlignCenter)
-            
-            # Remove button - in the upper right corner
-            remove_btn = QPushButton("×")
-            remove_btn.setToolTip("Remove file")
-            remove_btn.setProperty("file_index", i)
-            remove_btn.clicked.connect(self.remove_file)
-            remove_btn.setFixedWidth(18)
-            remove_btn.setFixedHeight(18)
-            remove_btn.setStyleSheet("""
-                QPushButton {
-                    border-radius: 9px;
-                    background-color: #ff6b6b;
-                    color: white;
-                    font-weight: bold;
-                    padding: 0px;
-                }
-                QPushButton:hover {
-                    background-color: #ff4757;
-                }
-            """)
-            
-            # Position the X button in the upper right of the icon
-            icon_frame.layout().addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-            
-            # Add the frame to the container
-            icon_container_layout.addWidget(icon_frame)
-            
-            # Add the container to the item
-            file_item.layout().addWidget(icon_container)
-            
-            # File name (basename only) - truncated if too long
+            # Get file information
             file_name = os.path.basename(file_path)
-            if len(file_name) > 20:
-                display_name = file_name[:17] + "..."
-            else:
-                display_name = file_name
-                
-            name_label = QLabel(display_name)
-            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            name_label.setToolTip(file_path)  # Full path on hover
-            file_item.layout().addWidget(name_label)
+            file_info = os.path.getsize(file_path)
+            file_size = self.format_file_size(file_info)
             
-            # Add to grid with alignment
-            self.file_list_layout.addWidget(file_item, row, col, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            # Add new row to table
+            row_position = self.file_list_widget.rowCount()
+            self.file_list_widget.insertRow(row_position)
+            
+            # File name
+            self.file_list_widget.setItem(row_position, 0, QTableWidgetItem(file_name))
+            
+            # File size
+            self.file_list_widget.setItem(row_position, 1, QTableWidgetItem(file_size))
+            
+            # Full path
+            self.file_list_widget.setItem(row_position, 2, QTableWidgetItem(file_path))
+            
+            # Delete button
+            delete_cell_widget = QWidget()
+            delete_layout = QHBoxLayout(delete_cell_widget)
+            delete_layout.setContentsMargins(2, 2, 2, 2)
+            delete_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            delete_btn = QToolButton()
+            delete_btn.setToolTip("Remove file")
+            delete_btn.setProperty("file_index", i)
+            delete_btn.clicked.connect(self.remove_file)
+            
+            # Try to use system icon for delete
+            if QIcon.hasThemeIcon("edit-delete"):
+                delete_btn.setIcon(QIcon.fromTheme("edit-delete"))
+            elif QIcon.hasThemeIcon("window-close"):
+                delete_btn.setIcon(QIcon.fromTheme("window-close"))
+            else:
+                delete_btn.setText("×")
+                delete_btn.setStyleSheet("""
+                    QToolButton {
+                        border-radius: 9px;
+                        background-color: #ff6b6b;
+                        color: white;
+                        font-weight: bold;
+                        padding: 0px;
+                    }
+                    QToolButton:hover {
+                        background-color: #ff4757;
+                    }
+                """)
+            
+            delete_layout.addWidget(delete_btn)
+            self.file_list_widget.setCellWidget(row_position, 3, delete_cell_widget)
+    
+    def format_file_size(self, size_bytes):
+        """Format file size from bytes to human readable format"""
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes/1024:.1f} KB"
+        elif size_bytes < 1024 * 1024 * 1024:
+            return f"{size_bytes/(1024*1024):.1f} MB"
+        else:
+            return f"{size_bytes/(1024*1024*1024):.1f} GB"
     
     def remove_file(self):
         """Remove a file from the list"""
@@ -867,27 +867,9 @@ class IdeaDensityApp(QWidget):
         
         if 0 <= index < len(self.selected_files):
             del self.selected_files[index]
-            self.update_file_display()
+            self.update_file_display()  # This will rebuild the table with updated indices
     
-    def setup_file_filter(self, layout, wrapper_layout=None):
-        """Create and add file filter dropdown for either CPIDR or DEPID"""
-        file_filter_layout = QHBoxLayout()
-        file_filter_layout.addWidget(QLabel("Show data for:"))
-        
-        self.file_filter_combo = QComboBox()
-        self.file_filter_combo.addItem("All files (combined)")
-        self.file_filter_combo.setEnabled(False)  # Disabled until multiple files analyzed
-        self.file_filter_combo.currentIndexChanged.connect(self.file_filter_changed)
-        
-        file_filter_layout.addWidget(self.file_filter_combo)
-        file_filter_layout.addStretch()
-        
-        if wrapper_layout:
-            wrapper_layout.addLayout(file_filter_layout)
-        else:
-            layout.addLayout(file_filter_layout)
-            
-        return self.file_filter_combo
+    # Removed setup_file_filter method since we now include the dropdown directly in each section
     
     def file_filter_changed(self):
         """Handler for when file filter is changed"""
@@ -908,16 +890,13 @@ class IdeaDensityApp(QWidget):
         # If "All files (combined)" or in text mode
         if selected_index == 0 or not self.file_dependencies:
             dependencies = self.current_dependencies
-            self.dependency_file_label.setText("Showing: All files (combined)")
         else:
             # Adjust for 0-based index and the "All files" item
             file_index = selected_index - 1
             if file_index < len(self.file_dependencies):
                 dependencies = self.file_dependencies[file_index]
-                self.dependency_file_label.setText(f"Showing: {self.file_names[file_index]}")
             else:
                 dependencies = self.current_dependencies
-                self.dependency_file_label.setText("Showing: All files (combined)")
         
         if not dependencies:
             return
