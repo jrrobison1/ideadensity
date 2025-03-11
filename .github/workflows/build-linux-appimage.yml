@@ -1,0 +1,145 @@
+name: Build Linux AppImage
+
+on:
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    tags:
+      - 'v*'  # Run on version tags
+
+permissions:
+  contents: write  # This is required for creating releases and uploading assets
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Extract version from tag
+        id: get_version
+        shell: bash
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libglib2.0-0
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          
+      - name: Install dependencies
+        run: |
+          poetry install
+          poetry run python -m spacy download en_core_web_sm
+      
+      - name: Install appimagetool
+        run: |
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          
+      - name: Create AppDir structure
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/metainfo
+      
+      - name: Build executable with PyInstaller
+        run: |
+          poetry add pyinstaller
+          MODEL_PATH=$(poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
+          poetry run pyinstaller --onefile --name=ideadensity-${VERSION} --collect-all en_core_web_sm --hidden-import=ddc459050edb75a05942__mypyc --hidden-import=tomli._parser --hidden-import=tomli._re --hidden-import=tomli._types main.py
+      
+      - name: Run tests
+        run: |
+          poetry run pytest tests/
+          
+      - name: Create AppImage metadata
+        run: |
+          # Copy executable to AppDir
+          cp dist/ideadensity-${VERSION} AppDir/usr/bin/ideadensity
+          chmod +x AppDir/usr/bin/ideadensity
+          
+          # Create desktop file
+          cat > AppDir/usr/share/applications/ideadensity.desktop << EOF
+          [Desktop Entry]
+          Name=Idea Density
+          Exec=ideadensity
+          Icon=ideadensity
+          Type=Application
+          Categories=Utility;
+          EOF
+          
+          # Convert icon (assuming .ico can be converted to .png using ImageMagick)
+          sudo apt-get install -y imagemagick
+          convert id_icon.ico -resize 256x256 AppDir/usr/share/icons/hicolor/256x256/apps/ideadensity.png
+          
+          # Create AppStream metadata
+          cat > AppDir/usr/share/metainfo/ideadensity.appdata.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <component type="desktop-application">
+            <id>ideadensity</id>
+            <name>Idea Density</name>
+            <summary>Tool for measuring idea density in text</summary>
+            <description>
+              <p>
+                Idea Density is a tool for analyzing and measuring the density of ideas in text content.
+              </p>
+            </description>
+            <url type="homepage">https://github.com/USERNAME/ideadensity</url>
+            <provides>
+              <binary>ideadensity</binary>
+            </provides>
+            <release version="${VERSION}" date="$(date +%Y-%m-%d)"/>
+          </component>
+          EOF
+          
+          # Create AppRun file
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          # Get the directory of the AppRun script
+          APPDIR="$(dirname "$(readlink -f "$0")")"
+          # Set the executable path
+          EXEC="$APPDIR/usr/bin/ideadensity"
+          # Execute with any arguments passed
+          exec "$EXEC" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+      - name: Build AppImage
+        run: |
+          ./appimagetool AppDir dist/ideadensity-linux-${VERSION}.AppImage
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ideadensity-linux-${{ env.VERSION }}
+          path: |
+            dist/ideadensity-${{ env.VERSION }}
+            dist/ideadensity-linux-${{ env.VERSION }}.AppImage
+            
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/ideadensity-linux-${{ env.VERSION }}.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
