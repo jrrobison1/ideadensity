@@ -267,12 +267,13 @@ class IdeaDensityApp(QWidget):
         # Header with title and download button
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 5)
-
-        # Empty label to take up space (will be filled with content later)
-        header_placeholder = QLabel()
-        header_layout.addWidget(
-            header_placeholder, 1
-        )  # Stretch factor to push button right
+        
+        # Add a label with content that will appear at the left
+        header_label = QLabel("<b>CPIDR Analysis</b>")
+        header_layout.addWidget(header_label)
+        
+        # Add stretch to push the button to the right
+        header_layout.addStretch(1)
 
         # Download button
         self.cpidr_summary_export_btn = QToolButton()
@@ -469,12 +470,13 @@ class IdeaDensityApp(QWidget):
         # Header with title and download button
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 5)
-
-        # Empty label to take up space (will be filled with content later)
-        header_placeholder = QLabel()
-        header_layout.addWidget(
-            header_placeholder, 1
-        )  # Stretch factor to push button right
+        
+        # Add a label with content that will appear at the left
+        self.depid_header_label = QLabel("<b>DEPID Analysis</b>")
+        header_layout.addWidget(self.depid_header_label)
+        
+        # Add stretch to push the button to the right
+        header_layout.addStretch(1)
 
         # Download button
         self.depid_summary_export_btn = QToolButton()
@@ -636,7 +638,6 @@ class IdeaDensityApp(QWidget):
 
         # Display summary results
         result_text = (
-            f"<b>CPIDR Analysis</b><br>"
             f"Word count: {word_count}<br>"
             f"Proposition count: {proposition_count}<br>"
             f"Idea density: {density:.3f}"
@@ -820,8 +821,11 @@ class IdeaDensityApp(QWidget):
 
         # Display summary results
         method_name = "DEPID-R" if is_depid_r else "DEPID"
+        
+        # Update the header label
+        self.depid_header_label.setText(f"<b>{method_name} Analysis</b>")
+        
         result_text = (
-            f"<b>{method_name} Analysis</b><br>"
             f"Word count: {word_count}<br>"
             f"Dependency count: {len(dependencies)}<br>"
             f"Idea density: {density:.3f}"
