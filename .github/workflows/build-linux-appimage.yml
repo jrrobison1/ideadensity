@@ -85,7 +85,11 @@ jobs:
           Icon=ideadensity
           Type=Application
           Categories=Utility;
+          Terminal=false
           EOF
+          
+          # Also create a copy in the root of AppDir as per AppImage requirements
+          cp AppDir/usr/share/applications/ideadensity.desktop AppDir/
           
           # Convert icon (assuming .ico can be converted to .png using ImageMagick)
           sudo apt-get install -y imagemagick
@@ -123,9 +127,16 @@ jobs:
           EOF
           chmod +x AppDir/AppRun
           
+      - name: Debug AppDir structure
+        run: |
+          echo "Listing AppDir content:"
+          find AppDir -type f | sort
+          echo "Contents of desktop file:"
+          cat AppDir/usr/share/applications/ideadensity.desktop
+
       - name: Build AppImage
         run: |
-          ./appimagetool AppDir dist/ideadensity-linux-${VERSION}.AppImage
+          ARCH=x86_64 ./appimagetool AppDir dist/ideadensity-linux-${VERSION}.AppImage
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
