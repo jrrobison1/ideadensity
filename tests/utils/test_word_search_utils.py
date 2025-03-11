@@ -5,10 +5,12 @@ from ideadensity.utils.word_search_utils import (
     beginning_of_sentence,
     is_repetition,
     search_backwards,
+    MAX_LOOKBACK,
+)
+from ideadensity.utils.export_utils import (
     export_cpidr_to_csv,
     export_depid_to_csv,
     export_cpidr_to_txt,
-    MAX_LOOKBACK,
 )
 from ideadensity.word_item import WordListItem, WordList
 from ideadensity.utils.constants import SENTENCE_END

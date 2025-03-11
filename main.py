@@ -13,7 +13,8 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from ideadensity.idea_density_rater import rate_text
 from ideadensity import depid
-from ideadensity.utils.word_search_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
+from ideadensity.utils.export_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
+from ideadensity.utils.version_utils import get_spacy_version_info
 
 
 def get_version():
