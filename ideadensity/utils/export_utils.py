@@ -3,37 +3,7 @@ import os
 from typing import List, Tuple, Any, TextIO, Dict, Optional
 
 from ideadensity.word_item import WordListItem, WordList
-from ideadensity.utils.version_utils import get_spacy_version_info
-
-# Import the get_version function from main.py
-import sys
-import importlib.util
-import pathlib
-
-
-def get_version():
-    """Get version from pyproject.toml like main.py does"""
-    try:
-        # Try to find the project root by searching for pyproject.toml
-        current_path = pathlib.Path(__file__).resolve().parent
-        for _ in range(5):  # Try up to 5 levels up
-            pyproject_path = current_path / "pyproject.toml"
-            if pyproject_path.exists():
-                break
-            current_path = current_path.parent
-
-        # If found, read the version
-        if pyproject_path.exists():
-            import tomli
-
-            with open(pyproject_path, "rb") as f:
-                pyproject_data = tomli.load(f)
-            return pyproject_data["tool"]["poetry"]["version"]
-    except (FileNotFoundError, KeyError, ImportError):
-        pass
-
-    # Fallback to hardcoded version - using same fallback as main.py
-    return "Unknown Version"  # Update hardcoded version to match current version
+from ideadensity.utils.version_utils import get_spacy_version_info, get_version
 
 
 def export_summary_to_csv(

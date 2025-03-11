@@ -3,27 +3,43 @@ import tomli
 from pathlib import Path
 import spacy
 
-# Try to get package version from pyproject.toml
-try:
-    # First, try to get the version from the package metadata
-    VERSION = importlib.metadata.version("ideadensity")
-except importlib.metadata.PackageNotFoundError:
-    # If that fails, try to find and read pyproject.toml
+
+def get_version():
+    """
+    Get the ideadensity package version.
+    
+    Tries to get the version from:
+    1. pyproject.toml file (preferred for development)
+    2. Package metadata (when installed and no pyproject.toml)
+    3. Hardcoded fallback if both methods fail
+    
+    Returns:
+        str: The version string
+    """
+    # First, try to find the version in pyproject.toml (preferred)
     try:
         current_dir = Path(__file__).resolve().parent
-        # Search up to 3 levels up from current file to find pyproject.toml
-        for _ in range(4):  # current dir + 3 levels up
+        # Search up to 4 levels up from current file to find pyproject.toml
+        for _ in range(5):  # current dir + 4 levels up
             pyproject_path = current_dir / "pyproject.toml"
             if pyproject_path.exists():
                 with open(pyproject_path, "rb") as f:
                     pyproject_data = tomli.load(f)
-                VERSION = pyproject_data.get("tool", {}).get("poetry", {}).get("version", "unknown")
-                break
+                version = pyproject_data.get("tool", {}).get("poetry", {}).get("version")
+                if version:
+                    return version
             current_dir = current_dir.parent
-        else:
-            VERSION = "unknown"  # If we can't find pyproject.toml
     except Exception:
-        VERSION = "unknown"  # Fallback in case of any issues
+        pass
+        
+    # If pyproject.toml not found, try package metadata
+    try:
+        return importlib.metadata.version("ideadensity")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    
+    # Fallback to hardcoded version
+    return "0.4.1"
 
 def get_spacy_version_info():
     """Get the spaCy version and model information.

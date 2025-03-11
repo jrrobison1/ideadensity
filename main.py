@@ -43,22 +43,7 @@ from ideadensity.utils.export_utils import (
     export_summary_to_txt,
     export_summary_to_csv,
 )
-from ideadensity.utils.version_utils import get_spacy_version_info
-
-
-def get_version():
-    """Get version from pyproject.toml"""
-    try:
-        pyproject_path = Path(__file__).parent / "pyproject.toml"
-        if not pyproject_path.exists():
-            # Try one directory up (for running from the repo root)
-            pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-
-        with open(pyproject_path, "rb") as f:
-            pyproject_data = tomli.load(f)
-        return pyproject_data["tool"]["poetry"]["version"]
-    except (FileNotFoundError, KeyError, tomli.TOMLDecodeError):
-        return "0.3.1"  # Fallback to hardcoded version
+from ideadensity.utils.version_utils import get_spacy_version_info, get_version
 
 
 def cli_main(text, speech_mode, csv_output=None, txt_output=None, filename=None):
