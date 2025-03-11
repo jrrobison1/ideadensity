@@ -49,11 +49,11 @@ jobs:
           poetry install
           poetry run python -m spacy download en_core_web_sm
       
-      - name: Build Windows executable with icon
+      - name: Build Windows executable
         run: |
           poetry add pyinstaller
           $MODEL_PATH = (poetry run python -c "import spacy; print(spacy.util.get_package_path('en_core_web_sm'))")
-          poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm --icon=id_icon.ico main.py
+          poetry run pyinstaller --onefile --windowed --name=ideadensity-$env:VERSION --collect-all en_core_web_sm --hidden-import=ddc459050edb75a05942__mypyc --hidden-import=tomli._parser --hidden-import=tomli._re --hidden-import=tomli._types --icon=id_icon.ico main.py
       
       - name: Run tests
         run: |
