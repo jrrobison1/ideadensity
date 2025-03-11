@@ -65,7 +65,9 @@ def cli_main(text, speech_mode, csv_output=None, txt_output=None, filename=None)
 class IdeaDensityApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Idea Density Analyzer")
+        # Get version and set window title
+        app_version = get_version()
+        self.setWindowTitle(f"ideadensity {app_version}")
         self.resize(1000, 700)
         # Make the window start maximized
         self.setWindowState(Qt.WindowState.WindowMaximized)
@@ -107,6 +109,8 @@ class IdeaDensityApp(QWidget):
         
         # Input stacked widget (contains both text and file input)
         self.input_stack = QStackedWidget()
+        # Set maximum height to reduce the top section size by about 25%
+        self.input_stack.setMaximumHeight(200)  # Limit the height of the input area
         main_layout.addWidget(self.input_stack)
         
         # Text input widget
@@ -185,17 +189,22 @@ class IdeaDensityApp(QWidget):
         # CPIDR Tab
         cpidr_layout = QVBoxLayout()
         
-        options_group = QGroupBox("Options")
-        options_layout = QHBoxLayout()
-        self.speech_mode_checkbox = QCheckBox("Speech Mode (filter fillers)")
-        options_layout.addWidget(self.speech_mode_checkbox)
-        options_group.setLayout(options_layout)
-        cpidr_layout.addWidget(options_group)
+        # Button and options row
+        button_options_layout = QHBoxLayout()
         
         # Analyze button
         self.cpidr_analyze_btn = QPushButton("Analyze with CPIDR")
         self.cpidr_analyze_btn.clicked.connect(self.analyze_cpidr)
-        cpidr_layout.addWidget(self.cpidr_analyze_btn)
+        button_options_layout.addWidget(self.cpidr_analyze_btn)
+        
+        # Options directly in horizontal layout
+        self.speech_mode_checkbox = QCheckBox("Speech Mode (filter fillers)")
+        button_options_layout.addWidget(self.speech_mode_checkbox)
+        
+        # Add stretcher to push everything to the left
+        button_options_layout.addStretch()
+        
+        cpidr_layout.addLayout(button_options_layout)
         
         # We'll move the file filter combobox to the token details section
         
@@ -208,7 +217,7 @@ class IdeaDensityApp(QWidget):
         self.cpidr_results.setAlignment(Qt.AlignmentFlag.AlignTop)
         cpidr_results_layout.addWidget(self.cpidr_results)
         cpidr_results_group.setLayout(cpidr_results_layout)
-        results_layout.addWidget(cpidr_results_group, 1)
+        results_layout.addWidget(cpidr_results_group, 1)  # Stretch factor 1
         
         # Token details table with filters
         word_details_group = QGroupBox("Token Details")
@@ -304,10 +313,12 @@ class IdeaDensityApp(QWidget):
         self.word_table = QTableWidget(0, 4)
         self.word_table.setHorizontalHeaderLabels(["Token", "POS Tag", "Is Proposition", "Rule"])
         self.word_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Make the table expand to fill available space
+        self.word_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         word_details_layout.addWidget(self.word_table)
         
         word_details_group.setLayout(word_details_layout)
-        results_layout.addWidget(word_details_group, 2)
+        results_layout.addWidget(word_details_group, 3)  # Increased stretch factor from 2 to 3
         
         cpidr_layout.addLayout(results_layout)
         cpidr_tab.setLayout(cpidr_layout)
@@ -315,17 +326,22 @@ class IdeaDensityApp(QWidget):
         # DEPID Tab
         depid_layout = QVBoxLayout()
         
-        depid_options_group = QGroupBox("Options")
-        depid_options_layout = QHBoxLayout()
-        self.depid_r_checkbox = QCheckBox("Use DEPID-R (count distinct dependencies)")
-        depid_options_layout.addWidget(self.depid_r_checkbox)
-        depid_options_group.setLayout(depid_options_layout)
-        depid_layout.addWidget(depid_options_group)
+        # Button and options row
+        button_options_layout = QHBoxLayout()
         
         # Analyze button
         self.depid_analyze_btn = QPushButton("Analyze with DEPID")
         self.depid_analyze_btn.clicked.connect(self.analyze_depid)
-        depid_layout.addWidget(self.depid_analyze_btn)
+        button_options_layout.addWidget(self.depid_analyze_btn)
+        
+        # Options directly in horizontal layout
+        self.depid_r_checkbox = QCheckBox("Use DEPID-R (count distinct dependencies)")
+        button_options_layout.addWidget(self.depid_r_checkbox)
+        
+        # Add stretcher to push everything to the left
+        button_options_layout.addStretch()
+        
+        depid_layout.addLayout(button_options_layout)
         
         # We'll move the file filter combobox to the dependency details section
         
@@ -338,7 +354,7 @@ class IdeaDensityApp(QWidget):
         self.depid_results.setAlignment(Qt.AlignmentFlag.AlignTop)
         depid_summary_layout.addWidget(self.depid_results)
         depid_results_group.setLayout(depid_summary_layout)
-        depid_results_layout.addWidget(depid_results_group, 1)
+        depid_results_layout.addWidget(depid_results_group, 1)  # Stretch factor 1
         
         # Dependency details
         dependency_group = QGroupBox("Dependencies")
@@ -404,10 +420,12 @@ class IdeaDensityApp(QWidget):
         self.dependency_table = QTableWidget(0, 3)
         self.dependency_table.setHorizontalHeaderLabels(["Token", "Dependency", "Head"])
         self.dependency_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Make the table expand to fill available space
+        self.dependency_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         dependency_layout.addWidget(self.dependency_table)
         
         dependency_group.setLayout(dependency_layout)
-        depid_results_layout.addWidget(dependency_group, 2)
+        depid_results_layout.addWidget(dependency_group, 3)  # Increased stretch factor from 2 to 3
         
         depid_layout.addLayout(depid_results_layout)
         depid_tab.setLayout(depid_layout)
