@@ -41,6 +41,7 @@ from ideadensity.utils.export_utils import (
     export_cpidr_to_txt,
     export_cpidr_multiple_files_to_txt,
     export_summary_to_txt,
+    export_summary_to_csv,
 )
 from ideadensity.utils.version_utils import get_spacy_version_info
 
@@ -200,21 +201,21 @@ class IdeaDensityApp(QWidget):
         self.file_list_widget = QTableWidget()
         self.file_list_widget.setColumnCount(4)
         self.file_list_widget.setHorizontalHeaderLabels(
-            ["File Name", "Size", "Full Path", ""]
+            ["", "File Name", "Size", "Full Path"]
         )
         self.file_list_widget.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
+            0, QHeaderView.ResizeMode.Fixed
+        )  # Delete icon
+        self.file_list_widget.setColumnWidth(0, 40)  # Fixed width for delete column
+        self.file_list_widget.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
         )  # Stretch file name
         self.file_list_widget.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.ResizeToContents
+            2, QHeaderView.ResizeMode.ResizeToContents
         )  # Size
         self.file_list_widget.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeMode.Stretch
+            3, QHeaderView.ResizeMode.Stretch
         )  # Full path
-        self.file_list_widget.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeMode.Fixed
-        )  # Delete icon
-        self.file_list_widget.setColumnWidth(3, 40)  # Fixed width for delete column
         self.file_list_widget.verticalHeader().setVisible(False)  # Hide row numbers
         self.file_list_widget.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
@@ -275,13 +276,25 @@ class IdeaDensityApp(QWidget):
         # Add stretch to push the button to the right
         header_layout.addStretch(1)
 
-        # Download button
+        # Download button with menu for different formats
         self.cpidr_summary_export_btn = QToolButton()
         self.cpidr_summary_export_btn.setToolTip("Download Summary")
-        self.cpidr_summary_export_btn.clicked.connect(self.export_cpidr_summary)
+        self.cpidr_summary_export_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.cpidr_summary_export_btn.setEnabled(
             False
         )  # Disabled until analysis is run
+        
+        # Create menu for export options
+        cpidr_summary_export_menu = QMenu(self)
+        export_txt_action = cpidr_summary_export_menu.addAction("TXT")
+        export_csv_action = cpidr_summary_export_menu.addAction("CSV")
+        
+        # Connect actions to handlers
+        export_txt_action.triggered.connect(self.export_cpidr_summary_txt)
+        export_csv_action.triggered.connect(self.export_cpidr_summary_csv)
+        
+        # Set the menu on the button
+        self.cpidr_summary_export_btn.setMenu(cpidr_summary_export_menu)
 
         # Set an icon (try system theme first, then fall back)
         icon_set = False
@@ -478,13 +491,25 @@ class IdeaDensityApp(QWidget):
         # Add stretch to push the button to the right
         header_layout.addStretch(1)
 
-        # Download button
+        # Download button with menu for different formats
         self.depid_summary_export_btn = QToolButton()
-        self.depid_summary_export_btn.setToolTip("Download Summary")
-        self.depid_summary_export_btn.clicked.connect(self.export_depid_summary)
+        self.depid_summary_export_btn.setToolTip("Download Summary") 
+        self.depid_summary_export_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.depid_summary_export_btn.setEnabled(
             False
         )  # Disabled until analysis is run
+        
+        # Create menu for export options
+        depid_summary_export_menu = QMenu(self)
+        export_txt_action = depid_summary_export_menu.addAction("TXT")
+        export_csv_action = depid_summary_export_menu.addAction("CSV")
+        
+        # Connect actions to handlers
+        export_txt_action.triggered.connect(self.export_depid_summary_txt)
+        export_csv_action.triggered.connect(self.export_depid_summary_csv)
+        
+        # Set the menu on the button
+        self.depid_summary_export_btn.setMenu(depid_summary_export_menu)
 
         # Set an icon (try system theme first, then fall back)
         icon_set = False
@@ -713,8 +738,10 @@ class IdeaDensityApp(QWidget):
         # Enable export buttons
         self.cpidr_export_btn.setEnabled(True)
 
-        # Only enable summary export in file mode
-        self.cpidr_summary_export_btn.setEnabled(self.input_mode == "file")
+        # Only enable summary export in file mode with multiple files
+        self.cpidr_summary_export_btn.setEnabled(
+            self.input_mode == "file" and len(self.file_names) > 0
+        )
 
     def update_token_filters(self):
         """Update token table based on filter checkboxes"""
@@ -902,8 +929,10 @@ class IdeaDensityApp(QWidget):
         # Enable export buttons
         self.depid_export_btn.setEnabled(True)
 
-        # Only enable summary export in file mode
-        self.depid_summary_export_btn.setEnabled(self.input_mode == "file")
+        # Only enable summary export in file mode with multiple files
+        self.depid_summary_export_btn.setEnabled(
+            self.input_mode == "file" and len(self.file_names) > 0
+        )
 
     def export_cpidr_csv(self):
         """Export CPIDR token details to a CSV file"""
@@ -1062,7 +1091,7 @@ class IdeaDensityApp(QWidget):
                     f"Error exporting dependency details: {str(e)}",
                 )
 
-    def export_cpidr_summary(self):
+    def export_cpidr_summary_txt(self):
         """Export CPIDR summary results to a TXT file"""
         if not self.file_names:
             QMessageBox.warning(self, "Export Error", "No analysis results to export.")
@@ -1104,8 +1133,51 @@ class IdeaDensityApp(QWidget):
                 QMessageBox.critical(
                     self, "Export Error", f"Error exporting summary: {str(e)}"
                 )
+                
+    def export_cpidr_summary_csv(self):
+        """Export CPIDR summary results to a CSV file"""
+        if not self.file_names:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
 
-    def export_depid_summary(self):
+        if self.input_mode != "file":
+            QMessageBox.warning(
+                self,
+                "Export Error",
+                "Summary export is only available in file input mode.",
+            )
+            return
+
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Summary CSV File",
+            os.path.expanduser("~/cpidr_summary.csv"),
+            "CSV Files (*.csv);;All Files (*)",
+        )
+
+        if file_path:
+            try:
+                export_summary_to_csv(
+                    "CPIDR",
+                    self.file_names,
+                    self.cpidr_ideas_counts,
+                    self.cpidr_word_counts,
+                    self.cpidr_densities,
+                    file_path,
+                )
+
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Summary exported to {file_path}",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting summary: {str(e)}"
+                )
+
+    def export_depid_summary_txt(self):
         """Export DEPID summary results to a TXT file"""
         if not self.file_names:
             QMessageBox.warning(self, "Export Error", "No analysis results to export.")
@@ -1130,6 +1202,53 @@ class IdeaDensityApp(QWidget):
         if file_path:
             try:
                 export_summary_to_txt(
+                    (
+                        self.depid_analyzer_type
+                        if hasattr(self, "depid_analyzer_type")
+                        else "DEPID"
+                    ),
+                    self.file_names,
+                    self.depid_ideas_counts,
+                    self.depid_word_counts,
+                    self.depid_densities,
+                    file_path,
+                )
+
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Summary exported to {file_path}",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Export Error", f"Error exporting summary: {str(e)}"
+                )
+                
+    def export_depid_summary_csv(self):
+        """Export DEPID summary results to a CSV file"""
+        if not self.file_names:
+            QMessageBox.warning(self, "Export Error", "No analysis results to export.")
+            return
+
+        if self.input_mode != "file":
+            QMessageBox.warning(
+                self,
+                "Export Error",
+                "Summary export is only available in file input mode.",
+            )
+            return
+
+        # Show file dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Summary CSV File",
+            os.path.expanduser("~/depid_summary.csv"),
+            "CSV Files (*.csv);;All Files (*)",
+        )
+
+        if file_path:
+            try:
+                export_summary_to_csv(
                     (
                         self.depid_analyzer_type
                         if hasattr(self, "depid_analyzer_type")
@@ -1205,16 +1324,7 @@ class IdeaDensityApp(QWidget):
             row_position = self.file_list_widget.rowCount()
             self.file_list_widget.insertRow(row_position)
 
-            # File name
-            self.file_list_widget.setItem(row_position, 0, QTableWidgetItem(file_name))
-
-            # File size
-            self.file_list_widget.setItem(row_position, 1, QTableWidgetItem(file_size))
-
-            # Full path
-            self.file_list_widget.setItem(row_position, 2, QTableWidgetItem(file_path))
-
-            # Delete button
+            # Delete button (first column)
             delete_cell_widget = QWidget()
             delete_layout = QHBoxLayout(delete_cell_widget)
             delete_layout.setContentsMargins(2, 2, 2, 2)
@@ -1224,31 +1334,47 @@ class IdeaDensityApp(QWidget):
             delete_btn.setToolTip("Remove file")
             delete_btn.setProperty("file_index", i)
             delete_btn.clicked.connect(self.remove_file)
+            delete_btn.setIconSize(QSize(16, 16))
 
-            # Try to use system icon for delete
-            if QIcon.hasThemeIcon("edit-delete"):
+            # Try to use system trash icon first
+            icon_set = False
+            if QIcon.hasThemeIcon("user-trash"):
+                delete_btn.setIcon(QIcon.fromTheme("user-trash"))
+                icon_set = True
+            elif QIcon.hasThemeIcon("trash-empty"):
+                delete_btn.setIcon(QIcon.fromTheme("trash-empty"))
+                icon_set = True
+            elif QIcon.hasThemeIcon("edit-delete"):
                 delete_btn.setIcon(QIcon.fromTheme("edit-delete"))
-            elif QIcon.hasThemeIcon("window-close"):
-                delete_btn.setIcon(QIcon.fromTheme("window-close"))
-            else:
-                delete_btn.setText("×")
+                icon_set = True
+            
+            # If no system icon, use text alternative
+            if not icon_set:
+                delete_btn.setText("🗑️")
                 delete_btn.setStyleSheet(
                     """
                     QToolButton {
-                        border-radius: 9px;
-                        background-color: #ff6b6b;
-                        color: white;
-                        font-weight: bold;
-                        padding: 0px;
+                        border: none;
+                        font-size: 16px;
+                        color: #ff4757;
                     }
                     QToolButton:hover {
-                        background-color: #ff4757;
+                        color: #ff6b6b;
                     }
                 """
                 )
 
+            # File name
+            self.file_list_widget.setItem(row_position, 1, QTableWidgetItem(file_name))
+
+            # File size
+            self.file_list_widget.setItem(row_position, 2, QTableWidgetItem(file_size))
+
+            # Full path
+            self.file_list_widget.setItem(row_position, 3, QTableWidgetItem(file_path))
+
             delete_layout.addWidget(delete_btn)
-            self.file_list_widget.setCellWidget(row_position, 3, delete_cell_widget)
+            self.file_list_widget.setCellWidget(row_position, 0, delete_cell_widget)
 
     def format_file_size(self, size_bytes):
         """Format file size from bytes to human readable format"""
