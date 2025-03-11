@@ -253,31 +253,33 @@ class IdeaDensityApp(QWidget):
         # Header with title and download button
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 5)
-        
+
         # Add a label with content that will appear at the left
         header_label = QLabel("<b>CPIDR Analysis</b>")
         header_layout.addWidget(header_label)
-        
+
         # Add stretch to push the button to the right
         header_layout.addStretch(1)
 
         # Download button with menu for different formats
         self.cpidr_summary_export_btn = QToolButton()
         self.cpidr_summary_export_btn.setToolTip("Download Summary")
-        self.cpidr_summary_export_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.cpidr_summary_export_btn.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
         self.cpidr_summary_export_btn.setEnabled(
             False
         )  # Disabled until analysis is run
-        
+
         # Create menu for export options
         cpidr_summary_export_menu = QMenu(self)
         export_txt_action = cpidr_summary_export_menu.addAction("TXT")
         export_csv_action = cpidr_summary_export_menu.addAction("CSV")
-        
+
         # Connect actions to handlers
         export_txt_action.triggered.connect(self.export_cpidr_summary_txt)
         export_csv_action.triggered.connect(self.export_cpidr_summary_csv)
-        
+
         # Set the menu on the button
         self.cpidr_summary_export_btn.setMenu(cpidr_summary_export_menu)
 
@@ -468,31 +470,33 @@ class IdeaDensityApp(QWidget):
         # Header with title and download button
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 5)
-        
+
         # Add a label with content that will appear at the left
         self.depid_header_label = QLabel("<b>DEPID Analysis</b>")
         header_layout.addWidget(self.depid_header_label)
-        
+
         # Add stretch to push the button to the right
         header_layout.addStretch(1)
 
         # Download button with menu for different formats
         self.depid_summary_export_btn = QToolButton()
-        self.depid_summary_export_btn.setToolTip("Download Summary") 
-        self.depid_summary_export_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.depid_summary_export_btn.setToolTip("Download Summary")
+        self.depid_summary_export_btn.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
         self.depid_summary_export_btn.setEnabled(
             False
         )  # Disabled until analysis is run
-        
+
         # Create menu for export options
         depid_summary_export_menu = QMenu(self)
         export_txt_action = depid_summary_export_menu.addAction("TXT")
         export_csv_action = depid_summary_export_menu.addAction("CSV")
-        
+
         # Connect actions to handlers
         export_txt_action.triggered.connect(self.export_depid_summary_txt)
         export_csv_action.triggered.connect(self.export_depid_summary_csv)
-        
+
         # Set the menu on the button
         self.depid_summary_export_btn.setMenu(depid_summary_export_menu)
 
@@ -833,10 +837,10 @@ class IdeaDensityApp(QWidget):
 
         # Display summary results
         method_name = "DEPID-R" if is_depid_r else "DEPID"
-        
+
         # Update the header label
         self.depid_header_label.setText(f"<b>{method_name} Analysis</b>")
-        
+
         result_text = (
             f"Word count: {word_count}<br>"
             f"Dependency count: {len(dependencies)}<br>"
@@ -1118,7 +1122,7 @@ class IdeaDensityApp(QWidget):
                 QMessageBox.critical(
                     self, "Export Error", f"Error exporting summary: {str(e)}"
                 )
-                
+
     def export_cpidr_summary_csv(self):
         """Export CPIDR summary results to a CSV file"""
         if not self.file_names:
@@ -1208,7 +1212,7 @@ class IdeaDensityApp(QWidget):
                 QMessageBox.critical(
                     self, "Export Error", f"Error exporting summary: {str(e)}"
                 )
-                
+
     def export_depid_summary_csv(self):
         """Export DEPID summary results to a CSV file"""
         if not self.file_names:
@@ -1332,7 +1336,7 @@ class IdeaDensityApp(QWidget):
             elif QIcon.hasThemeIcon("edit-delete"):
                 delete_btn.setIcon(QIcon.fromTheme("edit-delete"))
                 icon_set = True
-            
+
             # If no system icon, use text alternative
             if not icon_set:
                 delete_btn.setText("🗑️")
@@ -1475,7 +1479,7 @@ class IdeaDensityApp(QWidget):
     <li>spaCy version: {spacy_version}</li>
     <li>Model: {model_name} (v{model_version})</li>
 </ul>
-<p>Homepage: <a href="https://github.com/jrrobison1/PyCPIDR">https://github.com/jrrobison1/PyCPIDR</a></p>
+<p>Homepage: <a href="https://github.com/jrrobison1/ideadensity">https://github.com/jrrobison1/ideadensity</a></p>
 """
         QMessageBox.about(self, "About Idea Density Analyzer", message)
 

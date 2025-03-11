@@ -5,8 +5,8 @@ description = "Python library for computing propositional idea density"
 authors = ["Jason Robison <jrrobison@protonmail.com>"]
 readme = "README.md"
 license = "GNU GPLv2"
-homepage = "https://github.com/jrrobison1/PyCPIDR"
-repository = "https://github.com/jrrobison1/PyCPIDR"
+homepage = "https://github.com/jrrobison1/ideadensity"
+repository = "https://github.com/jrrobison1/ideadensity"
 keywords = ["nlp", "idea density", "linguistics"]
 classifiers = [
     "Development Status :: 3 - Alpha",

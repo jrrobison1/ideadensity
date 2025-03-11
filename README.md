@@ -1,5 +1,5 @@
 # ideadensity
-[![PyPI - Version](https://img.shields.io/pypi/v/ideadensity?link=https%3A%2F%2Fpypi.org%2Fproject%2Fideadensity%2F)](https://pypi.org/project/ideadensity/) [![Unit Tests](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/jrrobison1/pycpidr/actions/workflows/unit_tests.yml) [![Downloads](https://static.pepy.tech/badge/pycpidr)](https://pepy.tech/project/pycpidr)
+[![PyPI - Version](https://img.shields.io/pypi/v/ideadensity?link=https%3A%2F%2Fpypi.org%2Fproject%2Fideadensity%2F)](https://pypi.org/project/ideadensity/) [![Unit Tests](https://github.com/jrrobison1/ideadensity/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/jrrobison1/ideadensity/actions/workflows/unit_tests.yml) 
 
 Python library for computing propositional idea density.
 
