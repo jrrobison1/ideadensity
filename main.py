@@ -13,7 +13,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from ideadensity.idea_density_rater import rate_text
 from ideadensity import depid
-from ideadensity.utils.export_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt
+from ideadensity.utils.export_utils import export_cpidr_to_csv, export_depid_to_csv, export_cpidr_to_txt, export_cpidr_multiple_files_to_txt
 from ideadensity.utils.version_utils import get_spacy_version_info
 
 
@@ -32,7 +32,7 @@ def get_version():
         return "0.3.1"  # Fallback to hardcoded version
 
 
-def cli_main(text, speech_mode, csv_output=None, txt_output=None):
+def cli_main(text, speech_mode, csv_output=None, txt_output=None, filename=None):
     word_count, proposition_count, density, word_list = rate_text(text, speech_mode=speech_mode)
 
     print(f"Density: {density}")
@@ -56,7 +56,7 @@ def cli_main(text, speech_mode, csv_output=None, txt_output=None):
     # Export to TXT if requested
     if txt_output:
         try:
-            export_cpidr_to_txt(word_list, text, word_count, proposition_count, density, txt_output)
+            export_cpidr_to_txt(word_list, text, word_count, proposition_count, density, txt_output, filename)
             print(f"Results exported to {txt_output} in CPIDR format")
         except Exception as e:
             print(f"Error exporting to TXT: {str(e)}")
@@ -632,17 +632,8 @@ class IdeaDensityApp(QWidget):
             return
             
         # Get the original text
-        text, _ = self.get_input_text()
+        text, file_info = self.get_input_text()
         
-        # Get the analysis results
-        word_count = sum(1 for item in self.current_word_list.items if item.is_word)
-        proposition_count = sum(1 for item in self.current_word_list.items if item.is_proposition)
-        
-        # Calculate density
-        density = 0.0
-        if word_count > 0:
-            density = proposition_count / word_count
-            
         # Show file dialog
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Save TXT File", os.path.expanduser("~/cpidr_results.txt"), 
@@ -651,8 +642,66 @@ class IdeaDensityApp(QWidget):
         
         if file_path:
             try:
-                export_cpidr_to_txt(self.current_word_list, text, word_count, 
-                                    proposition_count, density, file_path)
+                # Check if we're in file mode and have multiple files
+                if (self.input_mode == "file" and file_info and 
+                    len(self.file_names) > 0 and len(self.file_word_lists) > 0):
+                    
+                    # All files combined mode (index 0)
+                    if self.cpidr_file_combo.currentIndex() == 0:
+                        # Export all files separately in one document
+                        export_cpidr_multiple_files_to_txt(
+                            self.file_word_lists, 
+                            self.file_names, 
+                            file_path
+                        )
+                    else:
+                        # Individual file selected
+                        selected_index = self.cpidr_file_combo.currentIndex() - 1  # -1 to account for "All files" item
+                        if 0 <= selected_index < len(self.file_names):
+                            word_list = self.file_word_lists[selected_index]
+                            filename = self.file_names[selected_index]
+                            
+                            # Calculate stats for the selected file
+                            word_count = sum(1 for item in word_list.items if item.is_word)
+                            proposition_count = sum(1 for item in word_list.items if item.is_proposition)
+                            density = 0.0
+                            if word_count > 0:
+                                density = proposition_count / word_count
+                                
+                            # Export the selected file
+                            export_cpidr_to_txt(
+                                word_list,
+                                "",  # Text is not needed since we have the filename
+                                word_count,
+                                proposition_count, 
+                                density, 
+                                file_path, 
+                                filename
+                            )
+                else:
+                    # Text mode or single file analysis (use current_word_list)
+                    # Get the analysis results
+                    word_count = sum(1 for item in self.current_word_list.items if item.is_word)
+                    proposition_count = sum(1 for item in self.current_word_list.items if item.is_proposition)
+                    
+                    # Calculate density
+                    density = 0.0
+                    if word_count > 0:
+                        density = proposition_count / word_count
+                        
+                    # For text mode, we don't have a filename
+                    filename = None
+                    
+                    export_cpidr_to_txt(
+                        self.current_word_list, 
+                        text, 
+                        word_count, 
+                        proposition_count, 
+                        density, 
+                        file_path, 
+                        filename
+                    )
+                
                 QMessageBox.information(
                     self, "Export Successful", f"Results exported to {file_path} in CPIDR format"
                 )
@@ -996,16 +1045,18 @@ if __name__ == "__main__":
         parser.add_argument("--txt", type=str, help="Export results to a TXT file in CPIDR format at the specified path")
         args = parser.parse_args()
 
+        filename = None
         if args.text:
             text = " ".join(args.text)
         else:  # args.file is set
             try:
                 text = read_text_from_file(args.file)
+                filename = os.path.basename(args.file)
             except (FileNotFoundError, IOError) as e:
                 print(f"Error: {str(e)}")
                 sys.exit(1)
                 
-        cli_main(text, args.speech_mode, args.csv, args.txt)
+        cli_main(text, args.speech_mode, args.csv, args.txt, filename)
     else:
         # Start GUI
         app = QApplication(sys.argv)
